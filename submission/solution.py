@@ -1,31 +1,33 @@
 #!/usr/bin/env python
 import random
-
+import gym
+import gym_duckietown_agent
 from duckietown_challenges import wrap_solution, ChallengeSolution, ChallengeInterfaceSolution
 
 
 class Submission(ChallengeSolution):
     def run(self, cis):
         # run the agent
+        from model import TfInference
 
-        # we can assume that there is a duckietown-gym instance listening
-        # on 127.0.0.1:port
+        model = TfInference(input_shape=(1, 120, 160, 3),
+                            output_shape=(1, 2),
+                            graph_location='trained_models/')
 
-        from aido_model import TensorflowLearningModel
+        env = gym.make("Duckietown-Lf-Lfv-Navv-Silent-v0")
 
-        model = TensorflowLearningModel('trained_models')
+        observation = env.reset()
+        done = False
 
-        while True:
+        while not done:
+            action = model.predict(observation)
+            observation, reward, done, info = env.step(action)
 
-            observations = get_from_slimremote()
-
-            actions = model.predict(observations)
-
-            send_with_slimremote(actions)
+        env.close()
+        model.close()
 
         # for debugging you can create
-        cis.set_output_file('checkpoint', 'trained_models/checkpoint')
-
+        #cis.set_output_file('checkpoint', 'trained_models/checkpoint')
 
 
 if __name__ == '__main__':
