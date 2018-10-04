@@ -11,17 +11,22 @@ class Submission(ChallengeSolution):
         # we can assume that there is a duckietown-gym instance listening
         # on 127.0.0.1:port
 
-        my_agent('127.0.0.1')
+        from aido_model import TensorflowLearningModel
+
+        model = TensorflowLearningModel('trained_models')
+
+        while True:
+
+            observations = get_from_slimremote()
+
+            actions = model.predict(observations)
+
+            send_with_slimremote(actions)
 
         # for debugging you can create
-        cis.set_output_file('filename.txt', my_filename)
+        cis.set_output_file('checkpoint', 'trained_models/checkpoint')
 
 
-# def my_agent(hostname):
-#     socket = open_socket(hostname)
-#
-#     while True:
-#         msg = receive_msg
 
 if __name__ == '__main__':
     wrap_solution(Submission())

@@ -8,11 +8,13 @@ logging.basicConfig()
 logger = logging.getLogger('evaluator')
 logger.setLevel(logging.DEBUG)
 
-# we are already in a container
+# we are in Evaluation Container
 
 class GymEvaluator(ChallengeEvaluator):
 
-    # first
+    # first thing to start
+
+    # 1) run prepare() in Evaluation Container  (this one)
     def prepare(self, cie):
         # no parameters for the submission
         cie.set_challenge_parameters({})
@@ -24,13 +26,14 @@ class GymEvaluator(ChallengeEvaluator):
 
         # now there is an environment listening on the socket
 
-    # then,
+    # then, the system runs:
     #
-    #  submission.run()
+    #  submission.run() -- defined in solution.py in the user's container
     #
-    # will be started in the other container
+    # will be started in Submission Container
 
-    # third
+    # after the previous is finished,
+    # we run score() in Evaluation Container (this container)
     def score(self, cie):
         fn = 'ros_output.bag'
         assert os.path.exists(fn)
