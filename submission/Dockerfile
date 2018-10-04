@@ -3,6 +3,8 @@
 FROM nvidia/cuda:9.1-runtime-ubuntu16.04
 
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
+         gcc \
+         libc-dev\
          git \
          bzip2 && \
      rm -rf /var/lib/apt/lists/*
