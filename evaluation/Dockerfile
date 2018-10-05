@@ -1,5 +1,4 @@
 # definition of  Evaluation Container
-#FROM python:2.7-alpine
 FROM duckietown/gym-duckietown-server
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
          gcc \
