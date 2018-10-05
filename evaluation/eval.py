@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import logging
-import os
+import subprocess
 from duckietown_challenges import wrap_evaluator, ChallengeEvaluator, InvalidSubmission
 
 logging.basicConfig()
@@ -15,13 +15,16 @@ class GymEvaluator(ChallengeEvaluator):
     # 1) run prepare() in Evaluation Container  (this one)
     def prepare(self, cie):
         # no parameters for the submission
-        cie.set_challenge_parameters({})
+        cie.set_challenge_parameters({
+            'something': 'something'
+        })
 
         # this command is on the base image gym-duckietown-server
         cmd = ['launch-gym-server-with-xvfb']
-        ret = os.system(" ".join(cmd))
+        p = subprocess.Popen(cmd)
+        print('Duckietown Gym Launched!')
 
-        print(ret)
+
         # start the *process* that is the gym environment
         # start_simulator_process(nsteps, nepisodes, log_output='ros_output.bag')
 

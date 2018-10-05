@@ -1,0 +1,36 @@
+
+challenge: aido1-gym-v3
+title: >
+    Trying the simulator challenge.
+
+description: |
+
+  No skills necessary!
+
+protocol: p1
+
+date-open: 2018-09-01t21:59:43.10-05:00
+date-close: 2019-01-01t21:59:43.10-05:00
+
+roles:
+  user:AndreaCensi:
+    grant: true
+    moderate: true
+    snoop: true
+
+steps:
+  step1:
+    title: First and only step
+    description: ""
+    evaluation_parameters:
+      # TODO: substitute for the real thing
+      container: "manfreddiaz/aido1-gym-evaluator@sha256:1d4cdeb11b63e255e2fe6441f6d04a7a2a95d28b138de5b1e8c3f9a0fa59d8bc"
+    features_required:
+      ram_available_mb: 80
+      disk_available_mb: 100
+
+transitions:
+  - [START, success, step1]
+  - [step1, success, SUCCESS]
+  - [step1, failed, FAILED]
+  - [step1, error, ERROR]

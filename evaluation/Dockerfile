@@ -4,6 +4,7 @@ FROM duckietown/gym-duckietown-server
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
          gcc \
          libc-dev
+
 ADD https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh miniconda.sh
 RUN sh miniconda.sh -b -p /opt/conda2 && rm miniconda.sh
 RUN mkdir /project
