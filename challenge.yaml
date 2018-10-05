@@ -1,5 +1,5 @@
 
-challenge: aido1-gym-v3
+challenge: aido1-gym-v1
 title: >
     Trying the simulator challenge.
 
@@ -24,7 +24,7 @@ steps:
     description: ""
     evaluation_parameters:
       # TODO: substitute for the real thing
-      container: "manfreddiaz/aido1-gym-evaluator@sha256:1d4cdeb11b63e255e2fe6441f6d04a7a2a95d28b138de5b1e8c3f9a0fa59d8bc"
+      container: "duckietown/aido1-gym-evaluator@sha256:0a2475331f3950ceab24eeb90933c9ec04a2ec310b16c2dd48eecaf494b3f1bc"
     features_required:
       ram_available_mb: 80
       disk_available_mb: 100

@@ -23,7 +23,7 @@ def _residual_block(x, size, dropout=False, dropout_prob=0.5, seed=None):
     return residual
 
 
-def resnet_1(x, keep_prob=0.5, seed=None):
+def one_residual(x, keep_prob=0.5, seed=None):
     nn = tf.layers.conv2d(x, filters=32, kernel_size=5, strides=2, padding='same',
                              kernel_initializer=tf.keras.initializers.he_normal(seed=seed),
                              kernel_regularizer=tf.keras.regularizers.l2(l2_lambda))
@@ -36,15 +36,13 @@ def resnet_1(x, keep_prob=0.5, seed=None):
                           kernel_regularizer=tf.keras.regularizers.l2(l2_lambda))
     nn = tf.keras.layers.add([rb_1, nn])
 
-    # TODO: check https://github.com/raghakot/keras-resnet for the absence of RELU after merging
-
     nn = tf.layers.flatten(nn)
 
     return nn
 
 
 class TfInference:
-    def __init__(self, input_shape, output_shape, graph_location, seed=1234):
+    def __init__(self, observation_shape, action_shape, graph_location, seed=1234):
         # model definition
         self._observation = None
         self._action = None
@@ -59,7 +57,7 @@ class TfInference:
 
         self.seed = seed
 
-        self._initialize(input_shape, output_shape, graph_location)
+        self._initialize(observation_shape, action_shape, graph_location)
 
     def predict(self, state):
         action = self.tf_session.run(self._computation_graph, feed_dict={
@@ -68,7 +66,7 @@ class TfInference:
         return np.squeeze(action)
 
     def computation_graph(self):
-        model = resnet_1(self._preprocessed_state, seed=self.seed)
+        model = one_residual(self._preprocessed_state, seed=self.seed)
         model = tf.layers.dense(model, units=64, activation=tf.nn.relu,
                                 kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False, seed=self.seed),
                                 bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False, seed=self.seed))
@@ -98,7 +96,7 @@ class TfInference:
         self._computation_graph = self.computation_graph()
 
     def _storing(self, location):
-        self.tf_saver = tf.train.Saver(filename='model', max_to_keep=2)
+        self.tf_saver = tf.train.Saver()
 
         self.tf_checkpoint = tf.train.latest_checkpoint(location)
         if self.tf_checkpoint:
