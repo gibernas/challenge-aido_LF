@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import logging
 import subprocess
+import os
+
 from duckietown_challenges import wrap_evaluator, ChallengeEvaluator, InvalidSubmission
 
 logging.basicConfig()
@@ -10,6 +12,9 @@ logger.setLevel(logging.DEBUG)
 
 # we are in Evaluation Container
 class GymEvaluator(ChallengeEvaluator):
+
+    def __init__(self):
+        self.gym_process = None
     # first thing to start
 
     # 1) run prepare() in Evaluation Container  (this one)
@@ -21,7 +26,7 @@ class GymEvaluator(ChallengeEvaluator):
 
         # this command is on the base image gym-duckietown-server
         cmd = ['launch-gym-server-with-xvfb']
-        p = subprocess.Popen(cmd)
+        self.gym_process = subprocess.Popen(cmd)
         print('Duckietown Gym Launched!')
 
 
@@ -41,12 +46,14 @@ class GymEvaluator(ChallengeEvaluator):
     # we run score() in Evaluation Container (this container)
     def score(self, cie):
         log_file = 'ros_output.bag'
-        assert os.path.exists(log_file)
+        # assert os.path.exists(log_file)
 
         scores = self.compute_scores(log_file)
 
         for score_name, score_value in scores.items():
             cie.set_score(score_name, score_value)
+
+        self.gym_process.terminate()  # TODO: Here? Maybe?
 
     def compute_scores(self, log_file):
         return {

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import gym
+from tqdm import tqdm
 import gym_duckietown_agent
 from duckietown_challenges import wrap_solution, ChallengeSolution, ChallengeInterfaceSolution
 
@@ -21,8 +22,8 @@ class Submission(ChallengeSolution):
 
         observation = env.reset()
 
-        for episode in range(EPISODES):
-            for horizon in range(HORIZON):
+        for episode in tqdm(range(EPISODES)):
+            for horizon in tqdm(range(HORIZON)):
                 action = model.predict(observation)
                 observation, reward, done, info = env.step(action)
 
@@ -31,6 +32,9 @@ class Submission(ChallengeSolution):
 
         env.close()
         model.close()
+
+        data = {'guess': 100}
+        cis.set_solution_output_dict(data)
 
         # for debugging you can create
         #cis.set_output_file('checkpoint', 'trained_models/checkpoint')
