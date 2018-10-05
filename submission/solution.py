@@ -1,13 +1,16 @@
 #!/usr/bin/env python
-import random
 import gym
 import gym_duckietown_agent
 from duckietown_challenges import wrap_solution, ChallengeSolution, ChallengeInterfaceSolution
+
+EPISODES = 10
+HORIZON = 500
 
 
 class Submission(ChallengeSolution):
     def run(self, cis):
         # run the agent
+        print('Agent running!')
         from model import TfInference
 
         model = TfInference(input_shape=(1, 120, 160, 3),
@@ -17,11 +20,14 @@ class Submission(ChallengeSolution):
         env = gym.make("Duckietown-Lf-Lfv-Navv-Silent-v0")
 
         observation = env.reset()
-        done = False
 
-        while not done:
-            action = model.predict(observation)
-            observation, reward, done, info = env.step(action)
+        for episode in range(EPISODES):
+            for horizon in range(HORIZON):
+                action = model.predict(observation)
+                observation, reward, done, info = env.step(action)
+
+                if done:
+                    break
 
         env.close()
         model.close()

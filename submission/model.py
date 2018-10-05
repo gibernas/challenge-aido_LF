@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 l2_lambda = 1e-04
@@ -64,7 +65,7 @@ class TfInference:
         action = self.tf_session.run(self._computation_graph, feed_dict={
             self._observation: [state],
         })
-        return action
+        return np.squeeze(action)
 
     def computation_graph(self):
         model = resnet_1(self._preprocessed_state, seed=self.seed)
