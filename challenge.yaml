@@ -1,5 +1,5 @@
-
 challenge: aido1-dummy_sim-v3
+
 title: >
     Trying the simulator challenge.
 
@@ -24,6 +24,8 @@ steps:
     description: ""
     evaluation_parameters:
       container: "duckietown/challenge-aido1_dummy_sim-evaluator:v3"
+#      container: "duckietown/aido1-gym-evaluator@sha256:0a2475331f3950ceab24eeb90933c9ec04a2ec310b16c2dd48eecaf494b3f1bc"
+
     features_required:
       gpu: true
       ram_available_mb: 80
