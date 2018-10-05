@@ -1,9 +1,10 @@
 # definition of  Evaluation Container
 #FROM python:2.7-alpine
-FROM duckietown/gym-duckietown-server
+FROM duckietown/gym-duckietown-server:slim
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
          gcc \
-         libc-dev
+         libc-dev \
+         bzip2
 
 ADD https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh miniconda.sh
 RUN sh miniconda.sh -b -p /opt/conda2 && rm miniconda.sh
