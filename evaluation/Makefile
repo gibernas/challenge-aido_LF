@@ -1,4 +1,4 @@
-img=duckietown/aido1_luck-v3-evaluator:latest
+img=duckietown/aido1_dummy_sim:v3
 
 
 all: push
