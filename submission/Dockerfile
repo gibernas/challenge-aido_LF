@@ -31,4 +31,5 @@ COPY model.py /project
 
 WORKDIR /project
 
+ENV DUCKIETOWN_SERVER=evaluator
 CMD python solution.py
