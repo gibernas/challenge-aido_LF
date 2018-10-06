@@ -22,8 +22,23 @@ steps:
   step1:
     title: Evaluation step
     description: ""
+
+    timeout: 10
     evaluation_parameters:
-      container: "duckietown/challenge-aido1_dummy_sim-evaluator:v3"
+      version: '3'
+      services:
+        evaluator:
+          image: "duckietown/challenge-aido1_dummy_sim-evaluator:v3"
+          environment:
+            DUCKIETOWN_CHALLENGE: LF
+            DTG_ENVIRONMENT: Duckietown-Lf-Lfv-Navv-Silent-v0
+            DTG_EPISODES: 10
+            DTG_HORIZON: 500
+        solution:
+            image: SUBMISSION_CONTAINER
+
+
+
 #      container: "duckietown/aido1-gym-evaluator@sha256:0a2475331f3950ceab24eeb90933c9ec04a2ec310b16c2dd48eecaf494b3f1bc"
 
     features_required:
