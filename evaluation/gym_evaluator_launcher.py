@@ -26,27 +26,34 @@ logger.setLevel(logging.DEBUG)
 # DTG_MAX_STEPS
 # DTG_CHALLENGE
 # DTG_LOGFILE
+# DTG_EPISODES
+# DTG_HORIZON
 
 
 def main():
-    map = os.getenv('DTG_MAP', DEFAULTS["map"])
-    domain_rand = bool(os.getenv('DTG_DOMAIN_RAND', DEFAULTS["domain_rand"]))
-    max_steps = int(os.getenv('DTG_MAX_STEPS', DEFAULTS["max_steps"]))
-
+    # pulling out of the environment
+    MAP_NAME = os.getenv('DTG_MAP', DEFAULTS["map"])
+    DOMAIN_RAND = bool(os.getenv('DTG_DOMAIN_RAND', DEFAULTS["domain_rand"]))
+    LOG_FILE_PATH = os.getenv('DTG_LOGFILE', DEFAULT_LOGFILE)
+    EPISODES = int(os.environ.get('DTG_EPISODES', 10))  # 10
+    HORIZON = int(os.environ.get('DTG_HORIZON', 500))  # 500
+    MAX_STEPS = int(os.getenv('DTG_MAX_STEPS', EPISODES * HORIZON))
     misc = {}  # init of info field for additional gym data
 
     challenge = os.getenv('DTG_CHALLENGE', "")
     if challenge in ["LF", "LFV"]:
         logger.debug("Launching challenge: {}".format(challenge))
-        map = DEFAULTS["challenges"][challenge]
+        MAP_NAME = DEFAULTS["challenges"][challenge]
         misc["challenge"] = challenge
-
-    logger.debug("Using map: {}".format(map))
+    else:
+        pass
+        # XXX: what if not? error?
+    logger.debug("Using map: {}".format(MAP_NAME))
 
     env = DuckietownEnv(
-        map_name=map,
-        max_steps=max_steps,
-        domain_rand=domain_rand
+        map_name=MAP_NAME,
+        max_steps=MAX_STEPS,
+        domain_rand=DOMAIN_RAND
     )
 
     publisher_socket = None
@@ -56,18 +63,19 @@ def main():
 
     obs = env.reset()
 
-    logfile = os.getenv('DTG_LOGFILE', DEFAULT_LOGFILE)
-    logger.debug('Logging gym state to: {}'.format(logfile))
-    evaluation = PickleLogger(env=env, map_name=map, logfile=logfile)
+    logger.debug('Logging gym state to: {}'.format(LOG_FILE_PATH))
+    evaluation = PickleLogger(env=env, map_name=MAP_NAME, logfile=LOG_FILE_PATH)
     evaluation.log()  # we log the starting position
 
     steps = 0
+    success = False
     while steps < env.max_steps:
-        if has_pull_message(command_socket, command_poll):
-            success, data = receive_data(command_socket)
-            if not success:
-                logger.error(data)  # in error case, this will contain the err msg
-                continue
+            while not success:
+                if has_pull_message(command_socket, command_poll):
+                    success, data = receive_data(command_socket)
+                    if not success:
+                        logger.error(data)  # in error case, this will contain the err msg
+                        continue
 
             reward = 0  # in case it's just a ping, not a motor command, we are sending a 0 reward
             done = False  # same thing... just for gym-compatibility
@@ -104,6 +112,17 @@ def main():
             if data["topic"] in [0, 1]:
                 misc.update(misc_)
                 send_gym(publisher_socket, obs, reward, done, misc)
+
+            success = False
+
+    misc['simulation_done'] = True
+    send_gym(
+        socket=publisher_socket,
+        img=obs,
+        reward=0.0,
+        done=True,
+        misc=misc
+    )
 
 
 if __name__ == '__main__':

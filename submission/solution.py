@@ -27,6 +27,8 @@ def solve(params, cis):
         if 'simulation_done' in info:
             break
         reward_acc += reward
+        if done:
+            env.reset()  # break if we have a way to close the gym
 
     # release the CPU/GPU resources our computation graph is using
     model.close()
@@ -46,7 +48,7 @@ class Submission(ChallengeSolution):
             cis.info('Starting.')
             solve(params, cis)  # let's try to solve it
         except Exception as e:
-            output['status'] = 'bad'
+            output['status'] = 'failure'
             output['msg'] = e.message
 
         # TODO: What's exactly this?
