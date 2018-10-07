@@ -30,7 +30,7 @@ steps:
         evaluator:
           image: "duckietown/challenge-aido1_dummy_sim-evaluator:v3"
           environment:
-            DUCKIETOWN_CHALLENGE: LF
+            DTG_CHALLENGE: LF
             DTG_ENVIRONMENT: Duckietown-Lf-Lfv-Navv-Silent-v0
             DTG_EPISODES: 10
             DTG_HORIZON: 500

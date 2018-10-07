@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 import logging
 import os
+import pickle
 import random
 import subprocess
+import numpy
 
-from duckietown_challenges import wrap_evaluator, ChallengeEvaluator
+from duckietown_challenges import wrap_evaluator, ChallengeEvaluator, ChallengeInterfaceEvaluator, wait_for_file
 
 logging.basicConfig()
 logger = logging.getLogger('evaluator')
 logger.setLevel(logging.DEBUG)
+
+LOGFILE = '/challenge-evaluation-output/' + 'logfile.pickle'
 
 
 # we are in Evaluation Container
@@ -24,6 +28,8 @@ class GymEvaluator(ChallengeEvaluator):
     # start_simulator_process(nsteps, nepisodes, log_output='ros_output.bag')
     # now there is an environment listening on the socket
     def prepare(self, cie):
+        assert isinstance(cie, ChallengeInterfaceEvaluator)
+
         EPISODES = int(os.environ.get('DTG_EPISODES'))  # 10
         HORIZON = int(os.environ.get('DTG_HORIZON'))  # 500
         ENVIRONMENT = os.environ.get('DTG_ENVIRONMENT')  # 'Duckietown-Lf-Lfv-Navv-Silent-v0'
@@ -38,17 +44,21 @@ class GymEvaluator(ChallengeEvaluator):
         # we can configure the gym launcher via environment variables
 
         environment = os.environ.copy()
-        environment['DUCKIETOWN_DOMAIN_RAND'] = 'false'
-        environment['DUCKIETOWN_MAX_STEPS'] = str(EPISODES * HORIZON)  # TODO: verify this actually controls the MAX
-        logger.info('challenge: %s' % os.environ['DUCKIETOWN_CHALLENGE'])  #
+        environment['DTG_DOMAIN_RAND'] = 'false'
+        environment['DTG_MAX_STEPS'] = str(EPISODES * HORIZON)  # TODO: verify this actually controls the MAX
+        environment['DTG_LOGFILE'] = LOGFILE  # TODO: verify
+        logger.info('challenge: %s' % os.environ['DTG_CHALLENGE'])  #
 
         # this command is on the base image gym-duckietown-server
-        cmd = ['launch-gym-server-with-xvfb']
+        cmd = ['/bin/bash', 'launch.sh']
         self.gym_process = subprocess.Popen(
                 args=cmd,
                 env=environment
         )
-        logger.debug('gym launched with pid = {}'.format(self.gym_process.pid))
+        logger.debug('gym started with pid = {}'.format(self.gym_process.pid))
+
+        # FIXME: very fragile process synchronization
+        wait_for_file(LOGFILE, 20, 1)
 
     # then, the system runs:
     #   submission.run() -- defined in solution.py in the user's container
@@ -57,17 +67,28 @@ class GymEvaluator(ChallengeEvaluator):
     # submission.run() is done
     # we run score() in Evaluation Container (this container)
     def score(self, cie):
-        log_file = 'ros_output.bag'
-        # assert os.path.exists(log_file)
+        self.gym_process.wait()
 
-        scores = self.compute_scores(log_file)
+        assert isinstance(cie, ChallengeInterfaceEvaluator)
+
+        scores = self.compute_scores(LOGFILE)
 
         for score_name, score_value in scores.items():
             cie.set_score(score_name, score_value)
 
-        self.gym_process.terminate()  # TODO: Here? Maybe?
 
     def compute_scores(self, log_file):
+        with open(log_file, mode='rb') as f:
+            map_name = pickle.load(f)
+            logger.debug('Computing score for: {}'.format(map_name))
+            eof = False
+            while not eof:
+                try:
+                    position = pickle.load(f)
+                    print(position)
+                except EOFError:
+                    eof = True
+
         return {
             'lf': random.uniform(0, 100),  # let the God of Randomness decide who's the first on the leaderboard
         }

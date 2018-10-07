@@ -19,29 +19,36 @@ class Submission(ChallengeSolution):
         # get the configuration parameters for this challenge
         params = cis.get_challenge_parameters()
 
+        output = {'status': 'ok'}
+
         # the environment
         env = gym.make(params['env'])
+        done = False
         # we make sure we have connection with the environment and it is ready to go
-        observation = env.reset()
-
-        # we run the predictions for a number of episodes
-        for _ in tqdm(range(params['episodes'])):
-            # for each episodes we do a 'horizon' number of steps
-            for _ in tqdm(range(params['horizon'])):
-                action = model.predict(observation)
-                observation, reward, done, info = env.step(action)
-
+        try:
+            observation = env.reset()
+            reward_acc = 0
+            # we run the predictions for a number of episodes
+            for episode in tqdm(range(params['episodes'])):
+                # for each episodes we do a 'horizon' number of steps
                 if done:
-                    break
-
-        # let's close gracefully our environment
-        env.close()
-        # release the CPU/GPU resources our computation graph is using
-        model.close()
+                    env.reset()
+                for _ in range(params['horizon']):
+                    action = model.predict(observation)
+                    observation, reward, done, info = env.step(action)
+                    reward_acc += reward
+                    if done:
+                        pass  # break if we have a way to close the gym
+            # let's close gracefully our environment
+            # env.close()
+            # release the CPU/GPU resources our computation graph is using
+            model.close()
+        except Exception as e:
+            output['status'] = 'bad'
+            output['msg'] = e.message
 
         # TODO: What's exactly this?
-        data = {'guess': 100}
-        cis.set_solution_output_dict(data)
+        cis.set_solution_output_dict(output)
 
         # for debugging you can create
         #cis.set_output_file('checkpoint', 'trained_models/checkpoint')
