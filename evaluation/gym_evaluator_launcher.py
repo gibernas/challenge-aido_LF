@@ -29,7 +29,7 @@ logger.setLevel(logging.DEBUG)
 
 
 def main():
-    map = os.getenv('DTG_MAP', DEFAULTS["map"])
+    map_name = os.getenv('DTG_MAP', DEFAULTS["map"])
     domain_rand = bool(os.getenv('DTG_DOMAIN_RAND', DEFAULTS["domain_rand"]))
     max_steps = int(os.getenv('DTG_MAX_STEPS', DEFAULTS["max_steps"]))
 
@@ -38,13 +38,15 @@ def main():
     challenge = os.getenv('DTG_CHALLENGE', "")
     if challenge in ["LF", "LFV"]:
         logger.debug("Launching challenge: {}".format(challenge))
-        map = DEFAULTS["challenges"][challenge]
+        map_name = DEFAULTS["challenges"][challenge]
         misc["challenge"] = challenge
-
-    logger.debug("Using map: {}".format(map))
+    else:
+        pass
+        # XXX: what if not? error?
+    logger.debug("Using map: {}".format(map_name))
 
     env = DuckietownEnv(
-        map_name=map,
+        map_name=map_name,
         max_steps=max_steps,
         domain_rand=domain_rand
     )
@@ -58,7 +60,7 @@ def main():
 
     logfile = os.getenv('DTG_LOGFILE', DEFAULT_LOGFILE)
     logger.debug('Logging gym state to: {}'.format(logfile))
-    evaluation = PickleLogger(env=env, map_name=map, logfile=logfile)
+    evaluation = PickleLogger(env=env, map_name=map_name, logfile=logfile)
     evaluation.log()  # we log the starting position
 
     steps = 0

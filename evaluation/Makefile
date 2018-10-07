@@ -1,10 +1,7 @@
 img=duckietown/challenge-aido1_dummy_sim-evaluator:v3
 
-
 all:
-
 	echo To do from scratch:    make build-nocache push define-challenge
-
 
 push:
 	docker push $(img)
@@ -15,6 +12,5 @@ build:
 build-no-cache:
 	docker build -t $(img) . --no-cache
 
-
 define-challenge:
-	dts challenges define --config ../challenge.yaml
+	dts challenges define --config ../challenge.yaml --build evaluator:.

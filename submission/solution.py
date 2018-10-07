@@ -19,17 +19,25 @@ class Submission(ChallengeSolution):
         # get the configuration parameters for this challenge
         params = cis.get_challenge_parameters()
 
+        cis.info('Parameters: %s' % params)
+
         output = {'status': 'ok'}
 
         # the environment
+        cis.info('Making environment')
         env = gym.make(params['env'])
+
+        cis.info('Starting.')
         done = False
         # we make sure we have connection with the environment and it is ready to go
         try:
+            cis.info('Reset.')
             observation = env.reset()
             reward_acc = 0
+            cis.info('Running...')
             # we run the predictions for a number of episodes
             for episode in tqdm(range(params['episodes'])):
+                cis.info('Running episode %d.' % episode)
                 # for each episodes we do a 'horizon' number of steps
                 if done:
                     env.reset()
@@ -45,14 +53,15 @@ class Submission(ChallengeSolution):
             model.close()
         except Exception as e:
             output['status'] = 'bad'
-            output['msg'] = e.message
+            output['msg'] = str(e)
 
         # TODO: What's exactly this?
         cis.set_solution_output_dict(output)
-
+        cis.info('Finished.')
         # for debugging you can create
         #cis.set_output_file('checkpoint', 'trained_models/checkpoint')
 
 
 if __name__ == '__main__':
+    print('Starting submission')
     wrap_solution(Submission())

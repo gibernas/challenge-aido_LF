@@ -1,16 +1,11 @@
 #!/usr/bin/env python
-import logging
 import os
 import pickle
 import random
 import subprocess
-import numpy
+import sys
 
 from duckietown_challenges import wrap_evaluator, ChallengeEvaluator, ChallengeInterfaceEvaluator, wait_for_file
-
-logging.basicConfig()
-logger = logging.getLogger('evaluator')
-logger.setLevel(logging.DEBUG)
 
 LOGFILE = '/challenge-evaluation-output/' + 'logfile.pickle'
 
@@ -28,6 +23,7 @@ class GymEvaluator(ChallengeEvaluator):
     # start_simulator_process(nsteps, nepisodes, log_output='ros_output.bag')
     # now there is an environment listening on the socket
     def prepare(self, cie):
+        cie.info('Preparing..')
         assert isinstance(cie, ChallengeInterfaceEvaluator)
 
         EPISODES = int(os.environ.get('DTG_EPISODES'))  # 10
@@ -35,11 +31,13 @@ class GymEvaluator(ChallengeEvaluator):
         ENVIRONMENT = os.environ.get('DTG_ENVIRONMENT')  # 'Duckietown-Lf-Lfv-Navv-Silent-v0'
 
         # parameters for the submission
-        cie.set_challenge_parameters({
+        parameters = {
             'env': ENVIRONMENT,
             'episodes': EPISODES,
             'horizon': HORIZON
-        })
+        }
+        cie.info('Parameters: %s' % parameters)
+        cie.set_challenge_parameters(parameters)
 
         # we can configure the gym launcher via environment variables
 
@@ -47,19 +45,23 @@ class GymEvaluator(ChallengeEvaluator):
         environment['DTG_DOMAIN_RAND'] = 'false'
         environment['DTG_MAX_STEPS'] = str(EPISODES * HORIZON)  # TODO: verify this actually controls the MAX
         environment['DTG_LOGFILE'] = LOGFILE  # TODO: verify
-        logger.info('challenge: %s' % os.environ['DTG_CHALLENGE'])  #
+        cie.info('challenge: %s' % os.environ['DTG_CHALLENGE'])  #
 
         # this command is on the base image gym-duckietown-server
         cmd = ['/bin/bash', 'launch.sh']
         self.gym_process = subprocess.Popen(
                 args=cmd,
-                env=environment
+                env=environment,
+                stderr=sys.stderr,
+                stdout=sys.stdout,
         )
-        logger.debug('gym started with pid = {}'.format(self.gym_process.pid))
+        cie.debug('gym started with pid = {}'.format(self.gym_process.pid))
 
         # FIXME: very fragile process synchronization
+        cie.info('Waiting for Gym to activate...')
         wait_for_file(LOGFILE, 20, 1)
 
+        cie.info('Preparation done.')
     # then, the system runs:
     #   submission.run() -- defined in solution.py in the user's container
     # will be started in Submission Container
@@ -67,20 +69,23 @@ class GymEvaluator(ChallengeEvaluator):
     # submission.run() is done
     # we run score() in Evaluation Container (this container)
     def score(self, cie):
+        cie.info('Waiting for gym to finish')
         self.gym_process.wait()
+        cie.info('Computing scores')
 
         assert isinstance(cie, ChallengeInterfaceEvaluator)
 
-        scores = self.compute_scores(LOGFILE)
+        scores = self.compute_scores(LOGFILE, cie)
 
         for score_name, score_value in scores.items():
             cie.set_score(score_name, score_value)
 
+        cie.set_evaluation_file('log.pickle', LOGFILE)
 
-    def compute_scores(self, log_file):
+    def compute_scores(self, log_file, cie):
         with open(log_file, mode='rb') as f:
             map_name = pickle.load(f)
-            logger.debug('Computing score for: {}'.format(map_name))
+            cie.debug('Computing score for: {}'.format(map_name))
             eof = False
             while not eof:
                 try:
