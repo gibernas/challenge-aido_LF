@@ -47,6 +47,10 @@ def main():
         misc["challenge"] = challenge
 
     logger.debug("Using map: {}".format(MAP_NAME))
+    else:
+        pass
+        # XXX: what if not? error?
+    logger.debug("Using map: {}".format(map_name))
 
     env = DuckietownEnv(
         map_name=MAP_NAME,

@@ -1,28 +1,24 @@
 #!/usr/bin/env python
-import logging
+
 import gym
-from tqdm import tqdm
 import gym_duckietown_agent  # DO NOT CHANGE THIS IMPORT (the environments are defined here)
 from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
     send_gym
 from duckietown_challenges import wrap_solution, ChallengeSolution, ChallengeInterfaceSolution
 
 
-logging.basicConfig()
-logger = logging.getLogger('submission')
-logger.setLevel(logging.DEBUG)
-
-
-def solve(params):
+def solve(params, cis):
+    cis.info('Creating model.')
     from model import TfInference
-
     # define observation and output shapes
     model = TfInference(observation_shape=(1, 120, 160, 3),
                         action_shape=(1, 2),
                         graph_location='trained_models/')
     # the environment
+    cis.info('Making environment')
     env = gym.make(params['env'])
     # we make sure we have connection with the environment and it is ready to go
+    cis.info('Reset environment')
     observation = env.reset()
     reward_acc = 0
     # we run the predictions for a number of episodes
@@ -47,20 +43,23 @@ class Submission(ChallengeSolution):
 
         # get the configuration parameters for this challenge
         params = cis.get_challenge_parameters()
+        cis.info('Parameters: %s' % params)
 
         output = {'status': 'success'}
         try:
-            solve(params)  # let's try to solve it
+            cis.info('Starting.')
+            solve(params, cis)  # let's try to solve it
         except Exception as e:
             output['status'] = 'failure'
             output['msg'] = e.message
 
         # TODO: What's exactly this?
         cis.set_solution_output_dict(output)
-
+        cis.info('Finished.')
         # for debugging you can create
         #cis.set_output_file('checkpoint', 'trained_models/checkpoint')
 
 
 if __name__ == '__main__':
+    print('Starting submission')
     wrap_solution(Submission())
