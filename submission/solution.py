@@ -2,8 +2,6 @@
 
 import gym
 import gym_duckietown_agent  # DO NOT CHANGE THIS IMPORT (the environments are defined here)
-from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
-    send_gym
 from duckietown_challenges import wrap_solution, ChallengeSolution, ChallengeInterfaceSolution
 
 
