@@ -51,6 +51,7 @@ class Submission(ChallengeSolution):
             output['status'] = 'failure'
             output['msg'] = e.message
 
+
         # TODO: What's exactly this?
         cis.set_solution_output_dict(output)
         cis.info('Finished.')
