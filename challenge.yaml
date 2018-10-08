@@ -1,11 +1,8 @@
 challenge: aido1-dummy_sim-v3
 
-title: >
-    Trying the simulator challenge.
+title: "[Test] Simulator test 1"
 
-description: |
-
-  No skills necessary!
+description: null # load from file challenge.description.md
 
 protocol: p1
 
