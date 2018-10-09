@@ -1,7 +1,7 @@
 challenge: aido1-dummy_sim-v3
 
 title: "[Test] Simulator test 1"
-
+tags: [testing, v3]
 description: null # load from file challenge.description.md
 
 protocol: p1
