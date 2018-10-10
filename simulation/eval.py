@@ -5,7 +5,7 @@ import sys
 
 from duckietown_challenges import wrap_evaluator, ChallengeEvaluator, ChallengeInterfaceEvaluator, wait_for_file
 
-LOGFILE = '/challenge-evaluation-output/' + 'logfile.pickle'
+LOGFILE = '/challenge-evaluation-output/' + 'logfile.bag'
 
 
 # we are in Evaluation Container
@@ -71,7 +71,7 @@ class GymEvaluator(ChallengeEvaluator):
 
         cie.set_score('simulation', '1.0')
 
-        cie.set_evaluation_file('log.pickle', LOGFILE)
+        cie.set_evaluation_file('log.bag', LOGFILE)
 
 
 if __name__ == '__main__':

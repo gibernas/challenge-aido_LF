@@ -8,11 +8,11 @@ from gym_duckietown.envs import DuckietownEnv
 from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
     send_gym
 
-from log import PickleLogger
+from log import ROSlogger
 
 # Settings
 DEBUG = True
-DEFAULT_LOGFILE = 'evaluation.pickle'
+DEFAULT_LOGFILE = 'evaluation.log'
 
 
 logging.basicConfig()
@@ -64,7 +64,7 @@ def main():
     obs = env.reset()
 
     logger.debug('Logging gym state to: {}'.format(LOG_FILE_PATH))
-    evaluation = PickleLogger(env=env, map_name=MAP_NAME, logfile=LOG_FILE_PATH)
+    evaluation = ROSlogger(env=env, map_name=MAP_NAME, logfile=LOG_FILE_PATH)
     evaluation.log()  # we log the starting position
 
     steps = 0
