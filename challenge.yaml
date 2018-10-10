@@ -1,6 +1,6 @@
-challenge: aido1-dummy_sim-v3
+challenge: aido1_LF1-v3
 
-title: "[Test] Simulator test 1"
+title: "[AIDO 1] Lane following (rev 1)"
 tags: [testing, v3]
 description: null # load from file challenge.description.md
 
@@ -25,16 +25,23 @@ steps:
       version: '3'
       services:
         evaluator:
-          image: "duckietown/challenge-aido1_dummy_sim-simulation:v3"
+          image: _
           environment:
             DTG_CHALLENGE: LF
             DTG_ENVIRONMENT: Duckietown-Lf-Lfv-Navv-Silent-v0
             DTG_EPISODES: 10
             DTG_HORIZON: 500
+
+          build:
+            context: ./simulation
+            dockerfile: Dockerfile
+            args: {}
+
         solution:
             image: SUBMISSION_CONTAINER
-#      container: "duckietown/aido1-gym-evaluator@sha256:0a2475331f3950ceab24eeb90933c9ec04a2ec310b16c2dd48eecaf494b3f1bc"
+
     features_required:
+      # This step requires a GPU
       gpu: true
       ram_available_mb: 80
       disk_available_mb: 100
@@ -48,10 +55,14 @@ steps:
       version: '3'
       services:
         scorer:
-          image: "duckietown/challenge-aido1_dummy_sim-scoring:v3"
-     #      container: "duckietown/aido1-gym-evaluator@sha256:0a2475331f3950ceab24eeb90933c9ec04a2ec310b16c2dd48eecaf494b3f1bc"
+          image: _
+          build:
+            context: ./scorer
+            dockerfile: Dockerfile
+            args: {}
+
     features_required:
-      gpu: true
+      # this step does not need a GPU
       ram_available_mb: 80
       disk_available_mb: 100
 
