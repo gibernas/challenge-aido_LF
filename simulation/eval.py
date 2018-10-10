@@ -24,6 +24,7 @@ class GymEvaluator(ChallengeEvaluator):
         cie.info('Preparing..')
         assert isinstance(cie, ChallengeInterfaceEvaluator)
 
+
         EPISODES = int(os.environ.get('DTG_EPISODES'))  # 10
         HORIZON = int(os.environ.get('DTG_HORIZON'))  # 500
         ENVIRONMENT = os.environ.get('DTG_ENVIRONMENT')  # 'Duckietown-Lf-Lfv-Navv-Silent-v0'

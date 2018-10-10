@@ -25,7 +25,7 @@ steps:
       version: '3'
       services:
         evaluator:
-          image: _
+          image: _ # to be filled in
           environment:
             DTG_CHALLENGE: LF
             DTG_ENVIRONMENT: Duckietown-Lf-Lfv-Navv-Silent-v0

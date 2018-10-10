@@ -1,19 +1,18 @@
 import logging
 import os
+
 import numpy as np
+import rosbag
+from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
+    send_gym
+from std_msgs.msg import Float32
 
 from gym_duckietown.config import DEFAULTS
 from gym_duckietown.envs import DuckietownEnv
 
-from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
-    send_gym
-
-from log import ROSlogger
-
 # Settings
 DEBUG = True
 DEFAULT_LOGFILE = 'evaluation.log'
-
 
 logging.basicConfig()
 logger = logging.getLogger('gym')
@@ -51,9 +50,9 @@ def main():
     logger.debug("Using map: {}".format(MAP_NAME))
 
     env = DuckietownEnv(
-        map_name=MAP_NAME,
-        max_steps=MAX_STEPS,
-        domain_rand=DOMAIN_RAND
+            map_name=MAP_NAME,
+            max_steps=MAX_STEPS,
+            domain_rand=DOMAIN_RAND
     )
 
     publisher_socket = None
@@ -63,65 +62,68 @@ def main():
 
     obs = env.reset()
 
+    bag = rosbag.Bag(LOG_FILE_PATH, 'w')
+
     logger.debug('Logging gym state to: {}'.format(LOG_FILE_PATH))
-    evaluation = ROSlogger(env=env, map_name=MAP_NAME, logfile=LOG_FILE_PATH)
-    evaluation.log()  # we log the starting position
 
     steps = 0
     success = False
     while steps < env.max_steps:
-            while not success:
-                if has_pull_message(command_socket, command_poll):
-                    success, data = receive_data(command_socket)
-                    if not success:
-                        logger.error(data)  # in error case, this will contain the err msg
-                        continue
+        bag.write('/steps', Float32(steps))
+        logger.debug('step %s' % steps)
 
-            reward = 0  # in case it's just a ping, not a motor command, we are sending a 0 reward
-            done = False  # same thing... just for gym-compatibility
-            misc_ = {}  # same same
+        while not success:
+            if has_pull_message(command_socket, command_poll):
+                success, data = receive_data(command_socket)
+                if not success:
+                    logger.error(data)  # in error case, this will contain the err msg
+                    continue
 
-            if data["topic"] == 0:
-                obs, reward, done, misc_ = env.step(data["msg"])
-                steps += 1
-                logger.debug('action: {}'.format(data['msg']))
-                logger.debug('steps: {}'.format(steps))
-                # we log the current environment step
-                evaluation.log(reward=reward)
-                if DEBUG:
-                    logger.info("challenge={}, step_count={}, reward={}, done={}".format(
+        reward = 0  # in case it's just a ping, not a motor command, we are sending a 0 reward
+        done = False  # same thing... just for gym-compatibility
+        misc_ = {}  # same same
+
+        if data["topic"] == 0:
+            obs, reward, done, misc_ = env.step(data["msg"])
+            steps += 1
+            logger.debug('action: {}'.format(data['msg']))
+            logger.debug('steps: {}'.format(steps))
+            # we log the current environment step
+            if DEBUG:
+                logger.info("challenge={}, step_count={}, reward={}, done={}".format(
                         challenge,
                         env.unwrapped.step_count,
                         np.around(reward, 3),
                         done)
-                    )
-                if done:
-                    env.reset()
+                )
+            if done:
+                env.reset()
 
-            if data["topic"] == 1:
-                logger.debug("received ping:", data)
+        if data["topic"] == 1:
+            logger.debug("received ping:", data)
 
-            if data["topic"] == 2:
-                obs = env.reset()
-                evaluation.log()
+        if data["topic"] == 2:
+            obs = env.reset()
 
-            # can only initialize socket after first listener is connected - weird ZMQ bug
-            if publisher_socket is None:
-                publisher_socket = make_pub_socket(for_images=True)
+        # can only initialize socket after first listener is connected - weird ZMQ bug
+        if publisher_socket is None:
+            publisher_socket = make_pub_socket(for_images=True)
 
-            if data["topic"] in [0, 1]:
-                misc.update(misc_)
-                send_gym(publisher_socket, obs, reward, done, misc)
+        if data["topic"] in [0, 1]:
+            misc.update(misc_)
+            send_gym(publisher_socket, obs, reward, done, misc)
 
-            success = False
+        success = False
+
+    bag.close()
 
     misc['simulation_done'] = True
     send_gym(
-        socket=publisher_socket,
-        img=obs,
-        reward=0.0,
-        done=True,
-        misc=misc
+            socket=publisher_socket,
+            img=obs,
+            reward=0.0,
+            done=True,
+            misc=misc
     )
 
 
