@@ -87,7 +87,7 @@ def main():
                 logger.debug('action: {}'.format(data['msg']))
                 logger.debug('steps: {}'.format(steps))
                 # we log the current environment step
-                evaluation.log()
+                evaluation.log(reward=reward)
                 if DEBUG:
                     logger.info("challenge={}, step_count={}, reward={}, done={}".format(
                         challenge,
