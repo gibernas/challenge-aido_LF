@@ -16,8 +16,8 @@ roles:
     snoop: true
 
 steps:
-  step1:
-    title: Evaluation step
+  step1-simulation:
+    title: Simulation step
     description: ""
 
     timeout: 10
@@ -25,7 +25,7 @@ steps:
       version: '3'
       services:
         evaluator:
-          image: "duckietown/challenge-aido1_dummy_sim-evaluator:v3"
+          image: "duckietown/challenge-aido1_dummy_sim-simulation:v3"
           environment:
             DTG_CHALLENGE: LF
             DTG_ENVIRONMENT: Duckietown-Lf-Lfv-Navv-Silent-v0
@@ -33,18 +33,33 @@ steps:
             DTG_HORIZON: 500
         solution:
             image: SUBMISSION_CONTAINER
-
-
-
 #      container: "duckietown/aido1-gym-evaluator@sha256:0a2475331f3950ceab24eeb90933c9ec04a2ec310b16c2dd48eecaf494b3f1bc"
+    features_required:
+      gpu: true
+      ram_available_mb: 80
+      disk_available_mb: 100
 
+  step2-scoring:
+    title: Scoring step
+    description: ""
+
+    timeout: 10
+    evaluation_parameters:
+      version: '3'
+      services:
+        scorer:
+          image: "duckietown/challenge-aido1_dummy_sim-scoring:v3"
+     #      container: "duckietown/aido1-gym-evaluator@sha256:0a2475331f3950ceab24eeb90933c9ec04a2ec310b16c2dd48eecaf494b3f1bc"
     features_required:
       gpu: true
       ram_available_mb: 80
       disk_available_mb: 100
 
 transitions:
-  - [START, success, step1]
-  - [step1, success, SUCCESS]
-  - [step1, failed, FAILED]
-  - [step1, error, ERROR]
+  - [START, success, step1-simulation]
+  - [step1-simulation, success, step2-scoring]
+  - [step1-simulation, failed, FAILED]
+  - [step1-simulation, error, ERROR]
+  - [step2-scoring, success, SUCCESS]
+  - [step2-scoring, failed, FAILED]
+  - [step2-scoring, error, ERROR]

@@ -1,4 +1,4 @@
-img=duckietown/challenge-aido1_dummy_sim-evaluator:v3
+img=duckietown/challenge-aido1_dummy_sim-simulation:v3
 
 all:
 	echo To do from scratch:    make build-nocache push define-challenge
