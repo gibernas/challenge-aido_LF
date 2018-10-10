@@ -1,13 +1,22 @@
-img=duckietown/challenge-aido1_dummy_sim-simulation:v3
+img=duckietown/gym-duckietown-server-ros:v3
 
 all:
-	echo To do from scratch:    make build-nocache push define-challenge
 
-push:
+
+push-base:
 	docker push $(img)
 
-build:
-	docker build -t $(img) . 
+build-base:
+	docker build -t $(img) -f Dockerfile.gym_duckietown_server_ros .
 
-build-no-cache:
-	docker build -t $(img) . --no-cache
+build-base-no-cache:
+	docker build -t $(img)-f Dockerfile.gym_duckietown_server_ros  . --no-cache
+
+
+
+build:
+	docker build .
+
+build-base-no-cache:
+	docker build --no-cache .
+
