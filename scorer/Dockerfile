@@ -1,5 +1,6 @@
 FROM ros:kinetic-ros-base-xenial
 
+ENV CACHE=2
 RUN apt-get update && apt-get install python-pip -y
 
 COPY requirements.txt /project/requirements.txt

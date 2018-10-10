@@ -10,7 +10,7 @@ def read_scores_data(log_file, cie):
         while not eof:
             try:
                 position = pickle.load(f)
-                print(position)
+                # print(position)
             except EOFError:
                 eof = True
 
