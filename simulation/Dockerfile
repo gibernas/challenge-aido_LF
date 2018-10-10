@@ -14,7 +14,7 @@ RUN mkdir /project
 COPY log.py /project
 COPY eval.py /project
 
-COPY gym_evaluator_launcher.py /project
+COPY gym_simulation_launcher.py /project
 COPY launch.sh /project
 
 COPY requirements.txt /project

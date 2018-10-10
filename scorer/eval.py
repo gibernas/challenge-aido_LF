@@ -7,16 +7,15 @@ class Scorer(ChallengeEvaluator):
 
     def prepare(self, cie):
         assert isinstance(cie, ChallengeInterfaceEvaluator)
-
         cie.set_challenge_parameters({})
 
     def score(self, cie):
         assert isinstance(cie, ChallengeInterfaceEvaluator)
-        previous = 'step1'
+        previous = 'step1-simulation'
         assert previous in cie.get_completed_steps()
         fn = cie.get_completed_step_evaluation_file(previous, 'log.pickle')
         from read_scores import read_scores_data
-        stats, scores = read_scores_data(fn)
+        stats, scores = read_scores_data(fn, cie)
 
         for k,v in scores.items():
             cie.set_score(k, v)

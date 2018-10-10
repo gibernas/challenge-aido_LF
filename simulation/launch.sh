@@ -20,7 +20,7 @@ xvfb=$!
 
 export DISPLAY=:99
 
-python gym_evaluator_launcher.py $@ &
+python gym_simulation_launcher.py $@ &
 gym=$!
 
 wait $gym

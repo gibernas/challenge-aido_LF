@@ -1,4 +1,4 @@
-img=duckietown/aido1_amod1-aidoscorer:latest
+img=duckietown/challenge-aido1_dummy_sim-scoring:v3
 
 
 all: push

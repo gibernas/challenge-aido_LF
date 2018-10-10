@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 import os
-import pickle
-import random
 import subprocess
 import sys
 
@@ -69,34 +67,11 @@ class GymEvaluator(ChallengeEvaluator):
     # submission.run() is done
     # we run score() in Evaluation Container (this container)
     def score(self, cie):
-        cie.info('Waiting for gym to finish')
-        self.gym_process.wait()
-        cie.info('Computing scores')
-
         assert isinstance(cie, ChallengeInterfaceEvaluator)
 
-        scores = self.compute_scores(LOGFILE, cie)
-
-        for score_name, score_value in scores.items():
-            cie.set_score(score_name, score_value)
+        cie.set_score('simulation', '1.0')
 
         cie.set_evaluation_file('log.pickle', LOGFILE)
-
-    def compute_scores(self, log_file, cie):
-        with open(log_file, mode='rb') as f:
-            map_name = pickle.load(f)
-            cie.debug('Computing score for: {}'.format(map_name))
-            eof = False
-            while not eof:
-                try:
-                    position = pickle.load(f)
-                    print(position)
-                except EOFError:
-                    eof = True
-
-        return {
-            'lf': random.uniform(0, 100),  # let the God of Randomness decide who's the first on the leaderboard
-        }
 
 
 if __name__ == '__main__':
