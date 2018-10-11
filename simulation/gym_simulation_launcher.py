@@ -70,7 +70,7 @@ def main():
 
     logger.debug('Logging gym state to: {}'.format(LOG_FILE_PATH))
     data_logger = ROSLogger(logfile=LOG_FILE_PATH)
-    data_logger.log_misc(**env_parameters)
+    data_logger.log_misc(env_parameters)
     try:
         steps = 0
         success = False
