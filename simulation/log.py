@@ -1,3 +1,5 @@
+import json
+
 import cv2
 import numpy as np
 import rosbag
@@ -9,7 +11,7 @@ from std_msgs.msg import Float32, String
 
 class ROSLogger(object):
 
-    def __init__(self, env, map_name, logfile):
+    def __init__(self, logfile):
         self.logfile = logfile
         with open(logfile, 'w') as f:
             f.write('starting...')
@@ -18,8 +20,12 @@ class ROSLogger(object):
     def close(self):
         self.bag.close()
 
-    def reset(self):
+    def log_misc(self, d):
+        """ Logs a dictionary as a json structor"""
+        msg = String(json.dumps(d))
+        self.bag.write('/gym/misc', msg)
 
+    def reset(self):
         self.bag.write('/gym/reset', String('Reset'))
 
     def log_action(self, t, action):
@@ -29,7 +35,9 @@ class ROSLogger(object):
     def log_observations(self, t, observations):
         timestamp = rospy.Time.from_sec(t)
         # rgb_from_bgr
-        msg = d8_compressed_image_from_cv_image(observations, timestamp=timestamp)
+        observations_rgb = observations
+        observations_bgr = cv2.cvtColor(observations_rgb, cv2.COLOR_BGR2RGB)
+        msg = d8_compressed_image_from_cv_image(observations_bgr, timestamp=timestamp)
         self.bag.write('/gym/observations', msg)
 
     def log_reward(self, t, reward):

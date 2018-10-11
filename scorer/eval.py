@@ -1,30 +1,24 @@
 # !/usr/bin/env python
 import duckietown_challenges as dc
-from read_scores import read_scores_data
 from make_video import make_video_bag
+from read_scores import read_scores_data
 
-cie = dc.ChallengeInterfaceEvaluatorConcrete()
 
-# get bag from previous steps
-bag_filename = cie.get_completed_step_evaluation_file('step1-simulation', 'logfile.bag')
+class Scorer(dc.ChallengeScorer):
+    def score(self, cie):
+        # get bag from previous steps
+        bag_filename = cie.get_completed_step_evaluation_file('step1-simulation', 'log.bag')
 
-# compute stats and scores
-stats, scores = read_scores_data(bag_filename, cie)
+        # compute stats and scores
+        stats = read_scores_data(bag_filename, cie)
+        cie.set_scores(stats)
 
-for k, v in scores.items():
-    cie.set_score(k, v)
+        # create a video
+        tmp_dir = cie.get_tmp_dir()
 
-# create a video
-tmp_dir = cie.get_tmp_dir()
+        mp4 = make_video_bag(bag_filename, tmp_dir=tmp_dir)
+        cie.set_evaluation_file('video.mp4', mp4)
 
-mp4 = make_video_bag(bag_filename, tmp_dir=tmp_dir)
-cie.set_evaluation_file('video.mp4', mp4)
 
-#
-# status = 'success'
-# msg = None
-# cr = dc.ChallengeResults(status=status, msg=msg, scores=scores, stats=stats)
-# dc.declare_challenge_results(None, cr)
-
-# write files
-cie.after_score()
+if __name__ == '__main__':
+    dc.wrap_scorer(Scorer())

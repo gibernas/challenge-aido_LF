@@ -17,23 +17,15 @@ def read_scores_data(log_file, cie):
     finite = np.isfinite(entries)
     # infinite = np.logical_not(finite)
     print(entries)
-    # print(finite)
-    # print(infinite)
-    # print('infinite: %s' % entries[infinite])
-    # print('finite: %s' % entries[finite])
 
     rewards = entries[finite]
 
     reward = np.mean(rewards)
 
     stats = {}
-    scores = {}
-
-    stats['finite'] = finite
-    stats['entries'] = entries
-
-    scores['reward'] = reward
-    return stats, scores
+    stats['nsteps'] = len(entries)
+    stats['reward'] = reward
+    return stats
 
 
 if __name__ == '__main__':

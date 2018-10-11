@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import json
 import logging
 import os
 import sys
@@ -40,8 +41,8 @@ def main():
     MAP_NAME = os.getenv('DTG_MAP', DEFAULTS["map"])
     DOMAIN_RAND = bool(os.getenv('DTG_DOMAIN_RAND', DEFAULTS["domain_rand"]))
     LOG_FILE_PATH = os.getenv('DTG_LOGFILE', DEFAULT_LOGFILE)
-    EPISODES = int(os.environ.get('DTG_EPISODES', 10))  # 10
-    HORIZON = int(os.environ.get('DTG_HORIZON', 500))  # 500
+    EPISODES = json.loads(os.environ.get('DTG_EPISODES', '10'))  # 10
+    HORIZON = json.loads(os.environ.get('DTG_HORIZON', '500'))  # 500
     MAX_STEPS = int(os.getenv('DTG_MAX_STEPS', EPISODES * HORIZON))
     misc = {}  # init of info field for additional gym data
 
@@ -55,12 +56,11 @@ def main():
         # XXX: what if not? error?
     logger.debug("Using map: {}".format(MAP_NAME))
 
-    env = DuckietownEnv(
-        map_name=MAP_NAME,
+    env_parameters = dict(map_name=MAP_NAME,
         max_steps=MAX_STEPS,
-        domain_rand=DOMAIN_RAND
-    )
+        domain_rand=DOMAIN_RAND)
 
+    env = DuckietownEnv(**env_parameters)
     publisher_socket = None
     command_socket, command_poll = make_pull_socket()
 
@@ -69,7 +69,8 @@ def main():
     observations = env.reset()
 
     logger.debug('Logging gym state to: {}'.format(LOG_FILE_PATH))
-    data_logger = ROSLogger(env=env, map_name=MAP_NAME, logfile=LOG_FILE_PATH)
+    data_logger = ROSLogger(logfile=LOG_FILE_PATH)
+    data_logger.log_misc(**env_parameters)
     try:
         steps = 0
         success = False
@@ -91,6 +92,10 @@ def main():
                 if data["topic"] == 0:
                     action = data['msg']
                     observations, reward, done, misc_ = env.step(action)
+                    if not np.isfinite(reward):
+                        msg = 'Invalid reward received: %s' % reward
+                        raise Exception(msg)
+
                     # XXX cannot be serialized later if misc['vels'] is an array
                     if 'vels' in misc_:
                         misc_['vels'] = list(misc_['vels'])

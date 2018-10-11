@@ -1,7 +1,7 @@
 challenge: aido1_LF1-v3
 
 title: "[AIDO 1] Lane following (rev 1)"
-tags: [testing, v3]
+tags: [aido1, v3]
 description: null # load from file challenge.description.md
 
 protocol: p1
@@ -15,6 +15,12 @@ roles:
     moderate: true
     snoop: true
 
+#evaluation:
+#    scores:
+#    - name: reward
+#      description: average reward
+#      order: descending
+#
 steps:
   step1-simulation:
     title: Simulation step
@@ -29,7 +35,7 @@ steps:
           environment:
             DTG_CHALLENGE: LF
             DTG_ENVIRONMENT: Duckietown-Lf-Lfv-Navv-Silent-v0
-            DTG_EPISODES: 1
+            DTG_EPISODES: 3
             DTG_HORIZON: 50
 
           build:
@@ -39,8 +45,8 @@ steps:
             image: SUBMISSION_CONTAINER
 
     features_required:
-      # This step requires a GPU
-      gpu: true
+      # This step requires a GPU - not really
+      #      gpu: true
       ram_available_mb: 80
       disk_available_mb: 100
 
