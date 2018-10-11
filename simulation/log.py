@@ -7,17 +7,18 @@ class Logger:
         self.logfile = logfile
         self.map_name = map_name
 
-    def log(self, reward=0.0):
+    def log(self, reward=0.0, obs=None):
         x, y, z = self.env.cur_pos
         self._log(
             x=x,
             y=y,
             z=z,
             theta=self.env.cur_angle,
-            reward=reward
+            reward=reward,
+            obs=obs
         )
 
-    def _log(self, x, y, z, theta, reward):
+    def _log(self, x, y, z, theta, reward, obs):
         raise NotImplementedError
 
     def close(self):
@@ -36,14 +37,15 @@ class PickleLogger(Logger):
             'map'
         }, self.file, protocol=2)
 
-    def _log(self, x, y, z, theta, reward):
+    def _log(self, x, y, z, theta, reward, obs):
         # easily substituted by a ROS Message
         pickle.dump({
             'x': x,
             'y': y,
             'z': z,
             'theta': theta,
-            'reward': reward
+            'reward': reward,
+            'obs': obs
         }, self.file, protocol=2)
 
     def close(self):

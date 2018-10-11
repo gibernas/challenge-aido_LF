@@ -65,7 +65,7 @@ def main():
 
     logger.debug('Logging gym state to: {}'.format(LOG_FILE_PATH))
     evaluation = PickleLogger(env=env, map_name=MAP_NAME, logfile=LOG_FILE_PATH)
-    evaluation.log()  # we log the starting position
+    evaluation.log(obs=obs)  # we log the starting position
 
     steps = 0
     success = False
@@ -87,7 +87,7 @@ def main():
                 logger.debug('action: {}'.format(data['msg']))
                 logger.debug('steps: {}'.format(steps))
                 # we log the current environment step
-                evaluation.log(reward=reward)
+                evaluation.log(reward=reward, obs=obs)
                 if DEBUG:
                     logger.info("challenge={}, step_count={}, reward={}, done={}".format(
                         challenge,
@@ -103,7 +103,7 @@ def main():
 
             if data["topic"] == 2:
                 obs = env.reset()
-                evaluation.log()
+                evaluation.log(obs=obs)
 
             # can only initialize socket after first listener is connected - weird ZMQ bug
             if publisher_socket is None:
