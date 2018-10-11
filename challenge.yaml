@@ -36,7 +36,13 @@ steps:
             DTG_CHALLENGE: LF
             DTG_ENVIRONMENT: Duckietown-Lf-Lfv-Navv-Silent-v0
             DTG_EPISODES: 3
-            DTG_HORIZON: 50
+            DTG_STEPS_PER_EPISODE: 50
+
+            DTG_DOMAIN_RAND: 0
+
+            DTG_CAMERA_HEIGHT: 120
+            DTG_CAMERA_WIDTH: 160
+            DTG_MAP: loop_obstacles # loop_pedestrians
 
           build:
             context: ./simulation

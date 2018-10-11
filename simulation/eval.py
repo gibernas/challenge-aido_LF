@@ -13,6 +13,7 @@ class GymEvaluator(dc.ChallengeEvaluator):
     def __init__(self):
         # gym process handler
         self.gym_process = None
+        self.logdir = None
 
     # first thing to start
     # 1) run prepare() in Evaluation Container  (this one)
@@ -23,19 +24,19 @@ class GymEvaluator(dc.ChallengeEvaluator):
         cie.info('Preparing..')
         assert isinstance(cie, dc.ChallengeInterfaceEvaluator)
 
-        EPISODES = int(os.environ.get('DTG_EPISODES'))  # 10
-        HORIZON = int(os.environ.get('DTG_HORIZON'))  # 500
+        # EPISODES = int(os.environ.get('DTG_EPISODES'))  # 10
+        # STEPS_PER_EPISODE = json.loads(os.environ.get('DTG_STEPS_PER_EPISODE'))
         ENVIRONMENT = os.environ.get('DTG_ENVIRONMENT')  # 'Duckietown-Lf-Lfv-Navv-Silent-v0'
 
         d = cie.get_tmp_dir()
-        # d = os.path.join('/', CHALLENGE_EVALUATION_OUTPUT_DIR)
-        self.logfile = os.path.join(d, 'logfile.bag')
+
+        self.logdir = os.path.join(d, 'episodes')
 
         # parameters for the submission
         parameters = {
             'env': ENVIRONMENT,
-            'episodes': EPISODES,
-            'horizon': HORIZON
+            # 'episodes': EPISODES,
+            # 'horizon': STEPS_PER_EPISODE
         }
         cie.info('Parameters: %s' % parameters)
         cie.set_challenge_parameters(parameters)
@@ -43,10 +44,10 @@ class GymEvaluator(dc.ChallengeEvaluator):
         # we can configure the gym launcher via environment variables
 
         environment = os.environ.copy()
-        environment['DTG_DOMAIN_RAND'] = json.dumps(False)
-        environment['DTG_MAX_STEPS'] = json.dumps(EPISODES * HORIZON)  # TODO: verify this actually controls the MAX
-        environment['DTG_LOGFILE'] = self.logfile  # TODO: verify
-        cie.info('challenge: %s' % os.environ['DTG_CHALLENGE'])  #
+
+        environment['DTG_LOG_DIR'] = self.logdir  # TODO: verify
+
+        # cie.info('challenge: %s' % os.environ['DTG_CHALLENGE'])  #
 
         # this command is on the base image gym-duckietown-server
         cmd = ['/bin/bash', 'launch.sh']
@@ -60,7 +61,7 @@ class GymEvaluator(dc.ChallengeEvaluator):
 
         # FIXME: very fragile process synchronization
         cie.info('Waiting for Gym to activate...')
-        dc.wait_for_file(self.logfile, 20, 1)
+        dc.wait_for_file(self.logdir, 20, 1)
 
         cie.info('Preparation done.')
 
@@ -82,7 +83,16 @@ class GymEvaluator(dc.ChallengeEvaluator):
 
         cie.set_score('simulation', '1.0')
 
-        cie.set_evaluation_file('log.bag', self.logfile)
+        set_evaluation_dir(cie, 'episodes', self.logdir)
+
+
+def set_evaluation_dir(cie, basename, realdir):
+    for bn in os.listdir(realdir):
+        fn = os.path.join(realdir, bn)
+        if os.path.isdir(fn):
+            set_evaluation_dir(cie, os.path.join(basename, bn), fn)
+        else:
+            cie.set_evaluation_file(os.path.join(basename, bn), fn)
 
 
 if __name__ == '__main__':
