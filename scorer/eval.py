@@ -20,11 +20,11 @@ tmp_dir = cie.get_tmp_dir()
 mp4 = make_video_bag(bag_filename, tmp_dir=tmp_dir)
 cie.set_evaluation_file('video.mp4', mp4)
 
-
-status = 'success'
-msg = None
-cr = dc.ChallengeResults(status=status, msg=msg, scores=scores, stats=stats)
-dc.declare_challenge_results(None, cr)
+#
+# status = 'success'
+# msg = None
+# cr = dc.ChallengeResults(status=status, msg=msg, scores=scores, stats=stats)
+# dc.declare_challenge_results(None, cr)
 
 # write files
 cie.after_score()
