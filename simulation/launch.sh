@@ -20,8 +20,11 @@ xvfb=$!
 
 export DISPLAY=:99
 
-python gym_simulation_launcher.py $@ &
-gym=$!
+set -ex
 
-wait $gym
+python gym_simulation_launcher.py $@
+#gym=$!
+#
+#wait $gym
 kill $xvfb
+

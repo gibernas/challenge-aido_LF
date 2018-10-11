@@ -1,22 +1,13 @@
-img=duckietown/gym-duckietown-server-ros:v3
-
-all:
 
 
-push-base:
-	docker push $(img)
-
-build-base:
-	docker build -t $(img) -f Dockerfile.gym_duckietown_server_ros .
-
-build-base-no-cache:
-	docker build -t $(img)-f Dockerfile.gym_duckietown_server_ros  . --no-cache
-
+tag=local-simulation
 
 
 build:
-	docker build .
+	docker build -t $(tag) .
 
 build-base-no-cache:
-	docker build --no-cache .
+	docker build -t $(tag) --no-cache .
 
+develop:
+	docker run -it -v $(PWD):/pwd -w /pwd $(tag) bash

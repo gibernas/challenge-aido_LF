@@ -1,5 +1,9 @@
+#!/usr/bin/env python
 import logging
 import os
+import sys
+import traceback
+
 import numpy as np
 
 from gym_duckietown.config import DEFAULTS
@@ -8,7 +12,8 @@ from gym_duckietown.envs import DuckietownEnv
 from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
     send_gym
 
-from log import ROSlogger
+from log import ROSLogger
+
 
 # Settings
 DEBUG = True
@@ -64,8 +69,7 @@ def main():
     obs = env.reset()
 
     logger.debug('Logging gym state to: {}'.format(LOG_FILE_PATH))
-    evaluation = ROSlogger(env=env, map_name=MAP_NAME, logfile=LOG_FILE_PATH)
-    evaluation.log()  # we log the starting position
+    data_logger = ROSLogger(env=env, map_name=MAP_NAME, logfile=LOG_FILE_PATH)
 
     steps = 0
     success = False
@@ -82,12 +86,17 @@ def main():
             misc_ = {}  # same same
 
             if data["topic"] == 0:
-                obs, reward, done, misc_ = env.step(data["msg"])
+                action = data['msg']
+                data_logger.log_action(i=steps, action=action)
+                observations, reward, done, misc_ = env.step(action)
+                data_logger.log_observations(i=steps, observations=observations)
+                data_logger.log_reward(i=steps, reward=reward)
+
                 steps += 1
                 logger.debug('action: {}'.format(data['msg']))
                 logger.debug('steps: {}'.format(steps))
                 # we log the current environment step
-                evaluation.log(reward=reward)
+
                 if DEBUG:
                     logger.info("challenge={}, step_count={}, reward={}, done={}".format(
                         challenge,
@@ -103,7 +112,7 @@ def main():
 
             if data["topic"] == 2:
                 obs = env.reset()
-                evaluation.log()
+                data_logger.reset()
 
             # can only initialize socket after first listener is connected - weird ZMQ bug
             if publisher_socket is None:
@@ -115,6 +124,7 @@ def main():
 
             success = False
 
+    data_logger.close()
     misc['simulation_done'] = True
     send_gym(
         socket=publisher_socket,
@@ -126,4 +136,10 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+        logger.info('success')
+        sys.exit(0)
+    except BaseException as e:
+        logger.error(traceback.format_exc(e))
+        sys.exit(2)

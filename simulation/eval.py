@@ -3,9 +3,9 @@ import os
 import subprocess
 import sys
 
-from duckietown_challenges import wrap_evaluator, ChallengeEvaluator, ChallengeInterfaceEvaluator, wait_for_file
+from duckietown_challenges import wrap_evaluator, ChallengeEvaluator, ChallengeInterfaceEvaluator, wait_for_file, \
+    InvalidEvaluator
 
-LOGFILE = '/challenge-evaluation-output/' + 'logfile.bag'
 
 
 # we are in Evaluation Container
@@ -28,6 +28,9 @@ class GymEvaluator(ChallengeEvaluator):
         HORIZON = int(os.environ.get('DTG_HORIZON'))  # 500
         ENVIRONMENT = os.environ.get('DTG_ENVIRONMENT')  # 'Duckietown-Lf-Lfv-Navv-Silent-v0'
 
+        d = cie.get_tmp_dir()
+        self.logfile = os.path.join(d, 'logfile.bag')
+
         # parameters for the submission
         parameters = {
             'env': ENVIRONMENT,
@@ -42,7 +45,7 @@ class GymEvaluator(ChallengeEvaluator):
         environment = os.environ.copy()
         environment['DTG_DOMAIN_RAND'] = 'false'
         environment['DTG_MAX_STEPS'] = str(EPISODES * HORIZON)  # TODO: verify this actually controls the MAX
-        environment['DTG_LOGFILE'] = LOGFILE  # TODO: verify
+        environment['DTG_LOGFILE'] = self.logfile  # TODO: verify
         cie.info('challenge: %s' % os.environ['DTG_CHALLENGE'])  #
 
         # this command is on the base image gym-duckietown-server
@@ -57,7 +60,7 @@ class GymEvaluator(ChallengeEvaluator):
 
         # FIXME: very fragile process synchronization
         cie.info('Waiting for Gym to activate...')
-        wait_for_file(LOGFILE, 20, 1)
+        wait_for_file(self.logfile, 20, 1)
 
         cie.info('Preparation done.')
     # then, the system runs:
@@ -69,9 +72,16 @@ class GymEvaluator(ChallengeEvaluator):
     def score(self, cie):
         assert isinstance(cie, ChallengeInterfaceEvaluator)
 
+        cie.info('waiting for gym to finish')
+        self.gym_process.wait()
+        cie.info('finished with return code %s' % self.gym_process.returncode)
+        if self.gym_process.returncode:
+            msg = 'Gym exited with code %s' % self.gym_process.returncode
+            raise InvalidEvaluator(msg)
+
         cie.set_score('simulation', '1.0')
 
-        cie.set_evaluation_file('log.bag', LOGFILE)
+        cie.set_evaluation_file('log.bag', self.logfile)
 
 
 if __name__ == '__main__':

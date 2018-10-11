@@ -1,12 +1,11 @@
-FROM duckietown/gym-duckietown-server-ros:v3
+FROM duckietown/gym-duckietown-server-python2-ros
 
 RUN mkdir /project
 
 COPY requirements.txt /project
-RUN /opt/conda2/bin/pip install -r /project/requirements.txt
+RUN pip install -r /project/requirements.txt
 
 WORKDIR /project
-
 
 
 COPY log.py /project
@@ -16,4 +15,4 @@ COPY gym_simulation_launcher.py /project
 COPY launch.sh /project
 
 
-CMD /opt/conda2/bin/python eval.py
+CMD python eval.py
