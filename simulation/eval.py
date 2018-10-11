@@ -4,8 +4,7 @@ import subprocess
 import sys
 
 from duckietown_challenges import wrap_evaluator, ChallengeEvaluator, ChallengeInterfaceEvaluator, wait_for_file, \
-    InvalidEvaluator
-
+    InvalidEvaluator, CHALLENGE_EVALUATION_OUTPUT_DIR
 
 
 # we are in Evaluation Container
@@ -29,6 +28,7 @@ class GymEvaluator(ChallengeEvaluator):
         ENVIRONMENT = os.environ.get('DTG_ENVIRONMENT')  # 'Duckietown-Lf-Lfv-Navv-Silent-v0'
 
         d = cie.get_tmp_dir()
+        d = os.path.join('/', CHALLENGE_EVALUATION_OUTPUT_DIR)
         self.logfile = os.path.join(d, 'logfile.bag')
 
         # parameters for the submission

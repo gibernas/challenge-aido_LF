@@ -70,79 +70,90 @@ def main():
 
     logger.debug('Logging gym state to: {}'.format(LOG_FILE_PATH))
     data_logger = ROSLogger(env=env, map_name=MAP_NAME, logfile=LOG_FILE_PATH)
+    try:
+        steps = 0
+        success = False
+        while steps < env.max_steps:
+                while not success:
+                    if has_pull_message(command_socket, command_poll):
+                        success, data = receive_data(command_socket)
+                        if not success:
+                            logger.error(data)  # in error case, this will contain the err msg
+                            continue
+                        else:
+                            pass
+                            # logger.debug('received: %s' % data)
 
-    steps = 0
-    success = False
-    while steps < env.max_steps:
-            while not success:
-                if has_pull_message(command_socket, command_poll):
-                    success, data = receive_data(command_socket)
-                    if not success:
-                        logger.error(data)  # in error case, this will contain the err msg
-                        continue
-                    else:
-                        logger.debug('received: %s' % data)
+                reward = 0  # in case it's just a ping, not a motor command, we are sending a 0 reward
+                done = False  # same thing... just for gym-compatibility
+                misc_ = {}  # same same
 
-            reward = 0  # in case it's just a ping, not a motor command, we are sending a 0 reward
-            done = False  # same thing... just for gym-compatibility
-            misc_ = {}  # same same
+                if data["topic"] == 0:
+                    action = data['msg']
+                    observations, reward, done, misc_ = env.step(action)
+                    # XXX cannot be serialized later if misc['vels'] is an array
+                    if 'vels' in misc_:
+                        misc_['vels'] = list(misc_['vels'])
 
-            if data["topic"] == 0:
-                action = data['msg']
-                observations, reward, done, misc_ = env.step(action)
+                    DELTA = 0.2 # FIXME
+                    t = env.unwrapped.step_count * DELTA
+                    data_logger.log_action(t=t, action=action)
+                    data_logger.log_observations(t=t, observations=observations)
+                    data_logger.log_reward(t=t, reward=reward)
 
-                data_logger.log_action(i=steps, action=action)
-                data_logger.log_observations(i=steps, observations=observations)
-                data_logger.log_reward(i=steps, reward=reward)
+                    steps += 1
+                    # logger.debug('action: {}'.format(action))
+                    # logger.debug('steps: {}'.format(steps))
+                    # we log the current environment step
 
-                steps += 1
-                logger.debug('action: {}'.format(action))
-                logger.debug('steps: {}'.format(steps))
-                # we log the current environment step
+                    if DEBUG:
+                        logger.info("challenge={}, step_count={}, reward={}, done={}".format(
+                            challenge,
+                            env.unwrapped.step_count,
+                            np.around(reward, 3),
+                            done)
+                        )
+                    if done:
+                        env.reset()
 
-                if DEBUG:
-                    logger.info("challenge={}, step_count={}, reward={}, done={}".format(
-                        challenge,
-                        env.unwrapped.step_count,
-                        np.around(reward, 3),
-                        done)
-                    )
-                if done:
-                    env.reset()
+                if data["topic"] == 1:
+                    logger.debug("received ping:", data)
 
-            if data["topic"] == 1:
-                logger.debug("received ping:", data)
+                if data["topic"] == 2:
+                    observations = env.reset()
+                    data_logger.reset()
 
-            if data["topic"] == 2:
-                obs = env.reset()
-                data_logger.reset()
+                # can only initialize socket after first listener is connected - weird ZMQ bug
+                if publisher_socket is None:
+                    publisher_socket = make_pub_socket(for_images=True)
 
-            # can only initialize socket after first listener is connected - weird ZMQ bug
-            if publisher_socket is None:
-                publisher_socket = make_pub_socket(for_images=True)
+                if data["topic"] in [0, 1]:
+                    misc.update(misc_)
+                    # print('sending misc = %s' % misc)
+                    send_gym(publisher_socket, observations, reward, done, misc)
 
-            if data["topic"] in [0, 1]:
-                misc.update(misc_)
-                send_gym(publisher_socket, observations, reward, done, misc)
+                success = False
+    finally:
+        data_logger.close()
 
-            success = False
-
-    data_logger.close()
+    logger.info('Simulation done.')
     misc['simulation_done'] = True
+
     send_gym(
         socket=publisher_socket,
-        img=obs,
+        img=observations,
         reward=0.0,
         done=True,
         misc=misc
     )
+    logger.info('Clean exit.')
 
 
 if __name__ == '__main__':
     try:
         main()
         logger.info('success')
-        sys.exit(0)
     except BaseException as e:
         logger.error(traceback.format_exc(e))
         sys.exit(2)
+    sys.exit(0)

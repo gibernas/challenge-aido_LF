@@ -12,3 +12,5 @@ build:
 build-no-cache:
 	docker build -t $(img) . --no-cache
 
+develop:
+	docker run -it -v $(PWD):/pwd -w /pwd $(img) bash

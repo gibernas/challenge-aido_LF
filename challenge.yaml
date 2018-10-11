@@ -29,13 +29,11 @@ steps:
           environment:
             DTG_CHALLENGE: LF
             DTG_ENVIRONMENT: Duckietown-Lf-Lfv-Navv-Silent-v0
-            DTG_EPISODES: 10
-            DTG_HORIZON: 500
+            DTG_EPISODES: 1
+            DTG_HORIZON: 50
 
           build:
             context: ./simulation
-            dockerfile: Dockerfile
-            args: {}
 
         solution:
             image: SUBMISSION_CONTAINER
@@ -58,8 +56,7 @@ steps:
           image: _
           build:
             context: ./scorer
-            dockerfile: Dockerfile
-            args: {}
+
 
     features_required:
       # this step does not need a GPU

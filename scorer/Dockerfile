@@ -1,17 +1,20 @@
-FROM ros:kinetic-ros-base-xenial
+#FROM ros:kinetic-ros-base-xenial
+FROM duckietown/rpi-gui-tools:master18-more-deps
 
 ENV CACHE=2
-RUN apt-get update && apt-get install python-pip -y
-
 COPY requirements.txt /project/requirements.txt
 RUN pip install -r /project/requirements.txt
 
 COPY eval.py /project/eval.py
 COPY read_scores.py /project/read_scores.py
-COPY log.pickle /example.pickle
+COPY make_video.py /project/make_video.py
+COPY example.bag /project/example.bag
+COPY entrypoint.sh /project/entrypoint.sh
 
 WORKDIR /project
 
 ENV PYTHONPATH=/project
 
-CMD python /project/eval.py
+ENTRYPOINT ["/project/entrypoint.sh"]
+CMD  ["/project/entrypoint.sh", "python" ,"/project/eval.py"]
+
