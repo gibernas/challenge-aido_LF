@@ -15,12 +15,12 @@ roles:
     moderate: true
     snoop: true
 
-#evaluation:
-#    scores:
-#    - name: reward
-#      description: average reward
-#      order: descending
-#
+scoring:
+    scores:
+    - name: reward
+      description: average reward over the episodes
+      order: descending
+
 steps:
   step1-simulation:
     title: Simulation step
@@ -35,11 +35,9 @@ steps:
           environment:
             DTG_CHALLENGE: LF
             DTG_ENVIRONMENT: Duckietown-Lf-Lfv-Navv-Silent-v0
-            DTG_EPISODES: 3
-            DTG_STEPS_PER_EPISODE: 50
-
+            DTG_EPISODES: 5
+            DTG_STEPS_PER_EPISODE: 500
             DTG_DOMAIN_RAND: 0
-
             DTG_CAMERA_HEIGHT: 120
             DTG_CAMERA_WIDTH: 160
             DTG_MAP: loop_obstacles # loop_pedestrians

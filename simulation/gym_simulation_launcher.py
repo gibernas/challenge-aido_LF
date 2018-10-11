@@ -84,18 +84,35 @@ def main():
     logger.debug('Logging gym state to: {}'.format(LOG_DIR))
     data_logger = ROSLogger(logdir=LOG_DIR)
 
+    min_nsteps = 10
+    MAX_FAILURES = 5
+    nfailures = 0
+    episodes = ['ep%03d' % _ for _ in range(EPISODES)]
     try:
-        for episode in range(EPISODES):
-            episode_name = 'ep%03d' % episode
+        while episodes:
+            if nfailures >= MAX_FAILURES:
+                msg = 'Too many failures: %s' % nfailures
+                raise Exception(msg) # XXX
+            
+            episode_name = episodes[0]
+
             logger.info('Starting episode %s' % episode_name)
             data_logger.start_episode(episode_name)
             data_logger.log_misc(env_parameters)
             try:
-                run_episode(env, data_logger, max_steps_per_episode=STEPS_PER_EPISODE,
-                            command_socket=command_socket,
-                            command_poll=command_poll,
-                            misc=misc)
-                logger.info('Finished episode %d' % episode)
+                nsteps = run_episode(env, data_logger, max_steps_per_episode=STEPS_PER_EPISODE,
+                                     command_socket=command_socket,
+                                     command_poll=command_poll,
+                                     misc=misc)
+                logger.info('Finished episode %s' % episode_name)
+
+                if nsteps >= min_nsteps:
+                    logger.info('%d steps are enough' % nsteps)
+                    episodes.pop(0)
+                else:
+                    logger.error('episode too short with %s steps' % nsteps)
+                    nfailures += 1
+
             finally:
                 data_logger.end_episode()
 
@@ -134,6 +151,7 @@ def get_next_data(command_socket, command_poll):
 
 
 def run_episode(env, data_logger, max_steps_per_episode, command_socket, command_poll, misc):
+    ''' returns number of steps '''
     observations = env.reset()
     steps = 0
     while steps < max_steps_per_episode:
@@ -193,6 +211,7 @@ def run_episode(env, data_logger, max_steps_per_episode, command_socket, command
     else:
         logger.info('breaking because steps = %s' % max_steps_per_episode)
 
+    return steps
 
 if __name__ == '__main__':
     try:

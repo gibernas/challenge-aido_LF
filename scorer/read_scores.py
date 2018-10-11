@@ -24,7 +24,7 @@ def read_scores_data(log_file, cie):
 
     stats = {}
     stats['nsteps'] = len(entries)
-    stats['reward'] = reward
+    stats['reward'] = float(reward)
     return stats
 
 

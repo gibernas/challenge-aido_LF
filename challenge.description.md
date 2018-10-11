@@ -1,10 +1,4 @@
-This is a test for the simulator interface.
-
-
-### Scoring
-
-* `lf`: Currently not computed.
-
+This is a test for the simulator interface
 
 ### Getting started
 
