@@ -1,5 +1,5 @@
 import pickle
-
+import cv2
 
 class Logger:
     def __init__(self, env, map_name, logfile):
@@ -45,7 +45,7 @@ class PickleLogger(Logger):
             'z': z,
             'theta': theta,
             'reward': reward,
-            'obs': obs
+            'obs': cv2.resize(obs, None, fx=0.5, fy=0.5)
         }, self.file, protocol=2)
 
     def close(self):
