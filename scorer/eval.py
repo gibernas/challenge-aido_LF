@@ -11,12 +11,14 @@ bag_filename = cie.get_completed_step_evaluation_file('step1-simulation', 'logfi
 # compute stats and scores
 stats, scores = read_scores_data(bag_filename, cie)
 
+for k, v in scores.items():
+    cie.set_score(k, v)
+
 # create a video
 tmp_dir = cie.get_tmp_dir()
 
 mp4 = make_video_bag(bag_filename, tmp_dir=tmp_dir)
 cie.set_evaluation_file('video.mp4', mp4)
-
 
 
 status = 'success'
