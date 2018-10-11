@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import traceback
 
 import gym
 import gym_duckietown_agent  # DO NOT CHANGE THIS IMPORT (the environments are defined here)
@@ -25,13 +26,16 @@ def solve(params, cis):
         action = model.predict(observation)
         observation, reward, done, info = env.step(action)
         if 'simulation_done' in info:
+            cis.info('Terminating because received %s' % info)
             break
         reward_acc += reward
         if done:
+            cis.info('done = true, so we call env.reset()')
             env.reset()  # break if we have a way to close the gym
 
     # release the CPU/GPU resources our computation graph is using
     model.close()
+    cis.info('graceful exit')
 
 
 class Submission(ChallengeSolution):
@@ -43,17 +47,17 @@ class Submission(ChallengeSolution):
         params = cis.get_challenge_parameters()
         cis.info('Parameters: %s' % params)
 
-        output = {'status': 'success'}
         try:
             cis.info('Starting.')
             solve(params, cis)  # let's try to solve it
         except Exception as e:
-            output['status'] = 'failure'
-            output['msg'] = e.message
-
+            msg = 'Exception while running solve():\n%s' % traceback.format_exc(e)
+            cis.error(msg)
+            cis.declare_failure(msg=msg)
+        else:
+            cis.set_solution_output_dict({})
 
         # TODO: What's exactly this?
-        cis.set_solution_output_dict(output)
         cis.info('Finished.')
         # for debugging you can create
         #cis.set_output_file('checkpoint', 'trained_models/checkpoint')

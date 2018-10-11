@@ -74,7 +74,7 @@ def main():
                           )
 
     env = DuckietownEnv(**env_parameters)
-    publisher_socket = None
+
     command_socket, command_poll = make_pull_socket()
 
     logger.debug("Simulator listening to incoming connections...")
@@ -93,7 +93,7 @@ def main():
             try:
                 run_episode(env, data_logger, max_steps_per_episode=STEPS_PER_EPISODE,
                             command_socket=command_socket,
-                            command_poll=command_poll, publisher_socket=publisher_socket,
+                            command_poll=command_poll,
                             misc=misc)
                 logger.info('Finished episode %d' % episode)
             finally:
@@ -106,13 +106,17 @@ def main():
     misc['simulation_done'] = True
 
     send_gym(
-            socket=publisher_socket,
+            socket=Global.publisher_socket,
             img=observations,
             reward=0.0,
             done=True,
             misc=misc
     )
     logger.info('Clean exit.')
+
+
+class Global:
+    publisher_socket = None
 
 
 def get_next_data(command_socket, command_poll):
@@ -129,7 +133,7 @@ def get_next_data(command_socket, command_poll):
             time.sleep(0.001)
 
 
-def run_episode(env, data_logger, max_steps_per_episode, command_socket, command_poll, publisher_socket, misc):
+def run_episode(env, data_logger, max_steps_per_episode, command_socket, command_poll, misc):
     observations = env.reset()
     steps = 0
     while steps < max_steps_per_episode:
@@ -170,7 +174,7 @@ def run_episode(env, data_logger, max_steps_per_episode, command_socket, command
                         done)
                 )
             if done:
-                return
+                break
 
         if data["topic"] == 1:
             logger.debug("received ping:", data)
@@ -179,13 +183,15 @@ def run_episode(env, data_logger, max_steps_per_episode, command_socket, command
             observations = env.reset()
 
         # can only initialize socket after first listener is connected - weird ZMQ bug
-        if publisher_socket is None:
-            publisher_socket = make_pub_socket(for_images=True)
+        if Global.publisher_socket is None:
+            Global.publisher_socket = make_pub_socket(for_images=True)
 
         if data["topic"] in [0, 1]:
             misc.update(misc_)
             # print('sending misc = %s' % misc)
-            send_gym(publisher_socket, observations, reward, done, misc)
+            send_gym(Global.publisher_socket, observations, reward, done, misc)
+    else:
+        logger.info('breaking because steps = %s' % max_steps_per_episode)
 
 
 if __name__ == '__main__':
