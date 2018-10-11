@@ -66,7 +66,7 @@ def main():
 
     logger.debug("Simulator listening to incoming connections...")
 
-    obs = env.reset()
+    observations = env.reset()
 
     logger.debug('Logging gym state to: {}'.format(LOG_FILE_PATH))
     data_logger = ROSLogger(env=env, map_name=MAP_NAME, logfile=LOG_FILE_PATH)
@@ -80,6 +80,8 @@ def main():
                     if not success:
                         logger.error(data)  # in error case, this will contain the err msg
                         continue
+                    else:
+                        logger.debug('received: %s' % data)
 
             reward = 0  # in case it's just a ping, not a motor command, we are sending a 0 reward
             done = False  # same thing... just for gym-compatibility
@@ -87,13 +89,14 @@ def main():
 
             if data["topic"] == 0:
                 action = data['msg']
-                data_logger.log_action(i=steps, action=action)
                 observations, reward, done, misc_ = env.step(action)
+
+                data_logger.log_action(i=steps, action=action)
                 data_logger.log_observations(i=steps, observations=observations)
                 data_logger.log_reward(i=steps, reward=reward)
 
                 steps += 1
-                logger.debug('action: {}'.format(data['msg']))
+                logger.debug('action: {}'.format(action))
                 logger.debug('steps: {}'.format(steps))
                 # we log the current environment step
 
@@ -120,7 +123,7 @@ def main():
 
             if data["topic"] in [0, 1]:
                 misc.update(misc_)
-                send_gym(publisher_socket, obs, reward, done, misc)
+                send_gym(publisher_socket, observations, reward, done, misc)
 
             success = False
 

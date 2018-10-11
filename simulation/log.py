@@ -11,12 +11,14 @@ from sensor_msgs.msg import CompressedImage
 import rospy
 
 import rosbag
-
+import shutil
 class ROSLogger(object):
 
     def __init__(self, env, map_name, logfile):
 
         self.logfile = logfile
+        with open(logfile, 'w') as f:
+            f.write('starting...')
         self.bag = rosbag.Bag(self.logfile, 'w')
 
     def close(self):
