@@ -4,7 +4,7 @@ title: "[AIDO 1] Lane following (rev 1)"
 tags: [aido1, v3]
 description: null # load from file challenge.description.md
 
-protocol: p1
+protocol: aido1_remote1-v3
 
 date-open: 2018-09-01t21:59:43.10-05:00
 date-close: 2019-01-01t21:59:43.10-05:00
