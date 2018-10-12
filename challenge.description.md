@@ -1,9 +1,1 @@
-This is a test for the simulator interface
-
-### Getting started
-
-To get started, clone the repository 
-
-> <https://github.com/duckietown/challenge-aido1_dummy_sim>
-
-and read the instructions provided therein.
+This challenge is described in the detail [in the book here](http://docs.duckietown.org/DT18/AIDO/out/challenge_aido1_lf1.html)
