@@ -16,7 +16,7 @@ For submitting, please follow [the instructions available in the book][book].
 
 ## Leaderboard 
 
-<img style="width: 24em" src="https://challenges.duckietown.org/v3/humans/challenges/aido1_LF1-v3/leaderboard/image.png"/>
+<img style="width: 24em" src="https://challenges.duckietown.org/v3/humans/challenges/aido1_LF1-v3/leaderboard/image.png?"/>
 
 For more details, see [the online leaderboard][leaderboard].
 

@@ -9,8 +9,8 @@ import traceback
 import numpy as np
 from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
     send_gym
-
 from gym_duckietown.envs import DuckietownEnv
+
 from log import ROSLogger
 
 # Settings
@@ -92,8 +92,8 @@ def main():
         while episodes:
             if nfailures >= MAX_FAILURES:
                 msg = 'Too many failures: %s' % nfailures
-                raise Exception(msg) # XXX
-            
+                raise Exception(msg)  # XXX
+
             episode_name = episodes[0]
 
             logger.info('Starting episode %s' % episode_name)
@@ -212,6 +212,7 @@ def run_episode(env, data_logger, max_steps_per_episode, command_socket, command
         logger.info('breaking because steps = %s' % max_steps_per_episode)
 
     return steps
+
 
 if __name__ == '__main__':
     try:
