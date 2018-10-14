@@ -43,12 +43,16 @@ class ROSLogger(object):
 
     def log_misc(self, d):
         """ Logs a dictionary as a json structor"""
+        print(d)
         msg = String(json.dumps(d))
         self.write('/gym/misc', msg)
 
     def log_action(self, t, action):
         self.write('/gym/action/0', Float32(action[0]))
         self.write('/gym/action/1', Float32(action[1]))
+
+    def log_misc(self, t, misc):
+        self.write('/gym/misc', String(json.dumps(misc)))
 
     def log_observations(self, t, observations):
         timestamp = rospy.Time.from_sec(t)
@@ -59,6 +63,10 @@ class ROSLogger(object):
         self.write('/gym/observations', msg)
 
     def log_reward(self, t, reward):
+        if not np.isfinite(reward):
+            msg = 'Invalid reward received: %s' % reward
+            raise Exception(msg)
+
         self.write('/gym/reward', Float32(reward))
 
 

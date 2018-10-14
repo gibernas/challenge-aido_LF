@@ -1,10 +1,25 @@
 #!/usr/bin/env python
-import json
 import os
 import subprocess
 import sys
 
 import duckietown_challenges as dc
+import yaml
+from duckietown_challenges import Timeout
+
+
+def env_as_yaml(name):
+    environment = os.environ.copy()
+    if not name in environment:
+        env_s = yaml.safe_dump(environment, default_flow_style=False)
+        msg = 'Could not find variable "%s"; I know:\n%s' % (name, env_s)
+        raise Exception(msg)
+    v = environment[name]
+    try:
+        return yaml.load(v)
+    except Exception as e:
+        msg = 'Could not load YAML: %s\n\n%s' % (e, v)
+        raise Exception(msg)
 
 
 # we are in Evaluation Container
@@ -21,24 +36,18 @@ class GymEvaluator(dc.ChallengeEvaluator):
     # start_simulator_process(nsteps, nepisodes, log_output='ros_output.bag')
     # now there is an environment listening on the socket
     def prepare(self, cie):
-        cie.info('Preparing..')
+        cie.info('Preparing here..')
         assert isinstance(cie, dc.ChallengeInterfaceEvaluator)
 
-        # EPISODES = int(os.environ.get('DTG_EPISODES'))  # 10
-        # STEPS_PER_EPISODE = json.loads(os.environ.get('DTG_STEPS_PER_EPISODE'))
-        ENVIRONMENT = os.environ.get('DTG_ENVIRONMENT')  # 'Duckietown-Lf-Lfv-Navv-Silent-v0'
+        parameters = env_as_yaml('solution_parameters')
+        cie.info('Solution parameters: %s' % parameters)
 
         d = cie.get_tmp_dir()
 
         self.logdir = os.path.join(d, 'episodes')
 
         # parameters for the submission
-        parameters = {
-            'env': ENVIRONMENT,
-            # 'episodes': EPISODES,
-            # 'horizon': STEPS_PER_EPISODE
-        }
-        cie.info('Parameters: %s' % parameters)
+
         cie.set_challenge_parameters(parameters)
 
         # we can configure the gym launcher via environment variables
@@ -59,9 +68,11 @@ class GymEvaluator(dc.ChallengeEvaluator):
         )
         cie.debug('gym started with pid = {}'.format(self.gym_process.pid))
 
-        # FIXME: very fragile process synchronization
         cie.info('Waiting for Gym to activate...')
-        dc.wait_for_file(self.logdir, 20, 1)
+        for _ in wait_for_file_yield(cie, self.logdir, 20, 1):
+            if self.gym_process.poll() is not None:
+                msg = 'The gym terminated with return code %s before starting.' % self.gym_process.returncode
+                raise dc.InvalidEvaluator(msg)
 
         cie.info('Preparation done.')
 
@@ -81,9 +92,25 @@ class GymEvaluator(dc.ChallengeEvaluator):
             msg = 'Gym exited with code %s' % self.gym_process.returncode
             raise dc.InvalidEvaluator(msg)
 
-        cie.set_score('simulation', '1.0')
+        cie.set_score('simulation-passed', 1)
 
         set_evaluation_dir(cie, 'episodes', self.logdir)
+
+
+import time
+
+
+def wait_for_file_yield(cie, fn, timeout, wait):
+    t0 = time.time()
+    while not os.path.exists(fn):
+        passed = int(time.time() - t0)
+        to_wait = timeout - passed
+        cie.debug('Output %s not ready yet (%s secs passed, will wait %s secs more)' % (fn, passed, to_wait))
+        if time.time() > t0 + timeout:
+            msg = 'Timeout of %s while waiting for %s.' % (timeout, fn)
+            raise Timeout(msg)
+        yield
+        time.sleep(wait)
 
 
 def set_evaluation_dir(cie, basename, realdir):

@@ -2,19 +2,16 @@
 FROM duckietown/rpi-gui-tools:master18-more-deps
 
 ENV CACHE=2
-COPY requirements.txt /project/requirements.txt
-RUN pip install -r /project/requirements.txt
+WORKDIR /scorer
 
-COPY eval.py /project/eval.py
-COPY read_scores.py /project/read_scores.py
-COPY make_video.py /project/make_video.py
-COPY example.bag /project/example.bag
-COPY entrypoint.sh /project/entrypoint.sh
+COPY requirements.txt  requirements.txt
+RUN pip install -r  requirements.txt
 
-WORKDIR /project
+COPY . .
 
-ENV PYTHONPATH=/project
 
-ENTRYPOINT ["/project/entrypoint.sh"]
-CMD  ["/project/entrypoint.sh", "python" ,"/project/eval.py"]
+ENV PYTHONPATH=/scorer
+
+ENTRYPOINT ["/scorer/entrypoint.sh"]
+CMD  ["/scorer/entrypoint.sh", "python" ,"/scorer/scorer.py"]
 

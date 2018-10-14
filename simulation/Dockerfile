@@ -1,4 +1,4 @@
-FROM duckietown/gym-duckietown-server-python2-ros
+FROM duckietown/gym-duckietown-server-python2-ros:more-exposure
 
 RUN mkdir /project
 
@@ -8,11 +8,7 @@ RUN pip install -r /project/requirements.txt
 WORKDIR /project
 
 
-COPY log.py /project
-COPY eval.py /project
-
-COPY gym_simulation_launcher.py /project
-COPY launch.sh /project
+COPY . .
 
 
 CMD python eval.py
