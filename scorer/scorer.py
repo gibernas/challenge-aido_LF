@@ -15,7 +15,7 @@ class Scorer(dc.ChallengeScorer):
         episodes = list(os.listdir(logdir))
         print('episodes: %s' % episodes)
 
-        compute_average_for = ['reward', 'good_angle', 'valid_direction', 'survival_time']
+        compute_average_for = ['reward', 'good_angle', 'valid_direction', 'survival_time', 'traveled_tiles']
 
         per_episode = {}
         for episode_name in episodes:
