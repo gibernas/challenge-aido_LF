@@ -15,4 +15,4 @@ Scorer:
 ## TODO for next revision (aido1_LF2)
 
 * Simulate distorted images 640x480.
-
+* Many more episodes simulated.
