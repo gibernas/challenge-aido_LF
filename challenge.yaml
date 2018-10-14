@@ -60,7 +60,7 @@ steps:
                 domain_rand: 0
                 camera_width: 160
                 camera_height: 120
-                accept_start_angle_deg: 1 # start close to straight
+                accept_start_angle_deg: 4 # start close to straight
                 full_transparency: true
               # passed to the agent in the "misc" field
               agent-info:

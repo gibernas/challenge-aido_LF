@@ -6,7 +6,7 @@
 <a href="http://aido.duckietown.org"><img width="200" src="https://www.duckietown.org/wp-content/uploads/2018/07/AIDO-768x512.png"/></a>
 
 
-## Challenge "[AIDO 1] Lane following (rev 1)" - `aido1_LF1-v3`
+## Challenge "[AIDO 1] Lane following (rev 2)" - `aido1_LF1_r2-v3`
 
 This is one of the challenges in the [the AI Driving Olympics](http://aido.duckietown.org/).
 
@@ -16,17 +16,17 @@ For submitting, please follow [the instructions available in the book][book].
 
 ## Leaderboard 
 
-<img style="width: 24em" src="https://challenges.duckietown.org/v3/humans/challenges/aido1_LF1-v3/leaderboard/image.png?"/>
+<img style="width: 24em" src="https://challenges.duckietown.org/v3/humans/challenges/aido1_LF1_r2-v3/leaderboard/image.png?"/>
 
 For more details, see [the online leaderboard][leaderboard].
 
 
-[leaderboard]: https://challenges.duckietown.org/v3/humans/challenges/aido1_LF1-v3/leaderboard
+[leaderboard]: https://challenges.duckietown.org/v3/humans/challenges/aido1_LF1_r2-v3/leaderboard
 
 
 [book]: http://docs.duckietown.org/DT18/AIDO/out/
 
-[online]: https://challenges.duckietown.org/v3/humans/challenges/aido1_LF1-v3
+[online]: https://challenges.duckietown.org/v3/humans/challenges/aido1_LF1_r2-v3
 
 ## Challenge description
 
