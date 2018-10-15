@@ -14,6 +14,14 @@ roles: {}
 
 scoring:
     scores:
+    - name: traveled_tiles_median
+      description: |
+        Median number of tiles traveled.
+      order: higher-is-better
+    - name: survival_time_mean
+      description: |
+          Average survival time in seconds.
+      order: higher-is-better
     - name: good_angle_mean
       description: |
         Integral of the lane angle absolute value.
@@ -22,14 +30,6 @@ scoring:
       description: |
         Checking that the angle was always less than 60.
       order: lower-is-better
-    - name: survival_time_mean
-      description: |
-          Survival time in seconds.
-      order: higher-is-better
-    - name: traveled_tiles_mean
-      description: |
-        Number of tiles traveled
-      order: higher-is-better
 
 steps:
   step1-simulation:
