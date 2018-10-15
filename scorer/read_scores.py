@@ -61,11 +61,10 @@ def compute_rules_violation(log_file, cie):
         accum_score_good_angle += dt * np.abs(angle_rad)**2
         accum_score_valid_direction += dt * invalid
 
-    print tile_coords_history
     stats = {}
     stats['traveled_tiles'] = len(set(tile_coords_history))
-    stats['good_angle'] = accum_score_good_angle
-    stats['valid_direction'] = accum_score_valid_direction
+    stats['good_angle'] = float(accum_score_good_angle)
+    stats['valid_direction'] = float(accum_score_valid_direction)
     stats['survival_time'] = old_timestamp
     return stats
 
