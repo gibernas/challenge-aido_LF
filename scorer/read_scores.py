@@ -58,7 +58,7 @@ def compute_rules_violation(log_file, cie):
         angle_rad = lane_position['angle_rad']
         invalid = int(np.abs(angle_rad) > np.deg2rad(VALID_ANGLE_LIMIT_DEG))
 
-        accum_score_good_angle += dt * angle_rad
+        accum_score_good_angle += dt * np.abs(angle_rad)**2
         accum_score_valid_direction += dt * invalid
 
     print tile_coords_history
