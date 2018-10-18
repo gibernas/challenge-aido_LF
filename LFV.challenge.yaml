@@ -1,11 +1,14 @@
-challenge: aido1_LF1_r3-v3
+challenge: aido1_LFV_r1-v3
 
-title: "[AIDO 1] Lane following (rev 3)"
-tags: [aido1, v3]
-description: null # load from file challenge.description.md
+title: "LFV - Lane following with vehicles (rev. 1)"
+tags: [aido1, LFV, v3]
+description: |
+  Lane following with vehicles.
+
+  This challenge is described in the detail [in the book](http://docs.duckietown.org/DT18/AIDO/out/index.html).
 
 protocol: aido1_remote3-v3
-# remote2: now the wheels velocities are used
+
 
 date-open: 2018-09-01t21:59:43.10-05:00
 date-close: 2019-01-01t21:59:43.10-05:00
@@ -38,7 +41,6 @@ steps:
 
     timeout: 10
     evaluation_parameters:
-      version: '3'
       services:
         evaluator:
           image: _
@@ -55,11 +57,9 @@ steps:
               # passed to the environment
               environment-parameters:
                 seed: 123 # random seed
-                map_name: loop_pedestrians # loop_obstacles # loop_pedestrians
+                map_name: loop_pedestrians
                 max_steps: 500000 # we don't want the gym to reset itself
                 domain_rand: 0
-#                camera_width: 160
-#                camera_height: 120
                 camera_width: 640
                 camera_height: 480
                 accept_start_angle_deg: 4 # start close to straight
@@ -68,18 +68,12 @@ steps:
               # passed to the agent in the "misc" field
               agent-info:
                 challenge: LF
-
           build:
             context: ./simulation
-
         solution:
             image: SUBMISSION_CONTAINER
 
-    features_required:
-      # This step requires a GPU - not really
-      #      gpu: true
-      ram_available_mb: 80
-      disk_available_mb: 100
+    features_required: {}
 
   step2-scoring:
     title: Scoring step
@@ -87,24 +81,36 @@ steps:
 
     timeout: 10
     evaluation_parameters:
-      version: '3'
       services:
         scorer:
           image: _
           build:
             context: ./scorer
 
+    features_required: {}
 
-    features_required:
-      # this step does not need a GPU
-      ram_available_mb: 80
-      disk_available_mb: 100
+  step3-videos:
+    title: Making videos
+    description: ""
+    timeout: 10
+    evaluation_parameters:
+      services:
+        videos:
+          image: _
+          build:
+            context: ./videos
+
+    features_required: {}
+
 
 transitions:
   - [START, success, step1-simulation]
   - [step1-simulation, success, step2-scoring]
   - [step1-simulation, failed, FAILED]
   - [step1-simulation, error, ERROR]
-  - [step2-scoring, success, SUCCESS]
+  - [step2-scoring, success, step3-videos]
   - [step2-scoring, failed, FAILED]
   - [step2-scoring, error, ERROR]
+  - [step3-videos, success, SUCCESS]
+  - [step3-videos, failed, FAILED]
+  - [step3-videos, error, ERROR]

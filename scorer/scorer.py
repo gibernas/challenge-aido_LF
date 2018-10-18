@@ -4,7 +4,6 @@ import os
 import numpy as np
 
 import duckietown_challenges as dc
-from make_video import make_video_bag
 from read_scores import read_scores_data, compute_rules_violation
 
 
@@ -27,13 +26,6 @@ class Scorer(dc.ChallengeScorer):
 
             per_episode[episode_name] = stats
 
-            # create a video
-            tmp_dir = cie.get_tmp_dir()
-
-            mp4 = make_video_bag(bag_filename, tmp_dir=tmp_dir)
-            if mp4 is not None:
-                cie.set_evaluation_file(os.path.join('episodes', episode_name, 'video.mp4'), mp4)
-
         cie.set_score('episodes', per_episode)
 
         for k in compute_average_for:
@@ -42,7 +34,6 @@ class Scorer(dc.ChallengeScorer):
             cie.set_score('%s_median' % k, float(np.median(values)))
             cie.set_score('%s_min' % k, float(np.min(values)))
             cie.set_score('%s_max' % k, float(np.max(values)))
-
 
 
 if __name__ == '__main__':

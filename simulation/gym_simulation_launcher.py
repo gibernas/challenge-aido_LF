@@ -7,11 +7,12 @@ import time
 import traceback
 
 import numpy as np
+import yaml
+
 from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
     send_gym
 from gym_duckietown.envs import DuckietownEnv
 from gym_duckietown.simulator import Simulator
-
 from log import ROSLogger
 
 # Settings
@@ -20,8 +21,6 @@ DEBUG = True
 logging.basicConfig()
 logger = logging.getLogger('launcher')
 logger.setLevel(logging.DEBUG)
-
-import yaml
 
 
 def env_as_yaml(name):

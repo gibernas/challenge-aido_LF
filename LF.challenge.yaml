@@ -1,0 +1,116 @@
+challenge: aido1_LF1_r3-v3
+
+title: "LF - Lane following (rev. 3)"
+tags: [aido1, LF, v3]
+description: |
+  Lane following challenge.
+
+  This challenge is described in the detail [in the book](http://docs.duckietown.org/DT18/AIDO/out/index.html).
+
+protocol: aido1_remote3-v3
+
+
+date-open: 2018-09-01t21:59:43.10-05:00
+date-close: 2019-01-01t21:59:43.10-05:00
+
+roles: {}
+
+scoring:
+    scores:
+    - name: traveled_tiles_median
+      description: |
+        Median number of tiles traveled.
+      order: higher-is-better
+    - name: survival_time_mean
+      description: |
+          Average survival time in seconds.
+      order: higher-is-better
+    - name: good_angle_mean
+      description: |
+        Integral of the lane angle absolute value.
+      order: lower-is-better
+    - name: valid_direction_mean
+      description: |
+        Checking that the angle was always less than 60.
+      order: lower-is-better
+
+steps:
+  step1-simulation:
+    title: Simulation step
+    description: ""
+
+    timeout: 10
+    evaluation_parameters:
+      services:
+        evaluator:
+          image: _
+          environment:
+            solution_parameters:
+              env: Duckietown-Lf-Lfv-Navv-Silent-v1
+
+            launcher_parameters:
+              challenge: LF
+              episodes: 5
+              steps_per_episode: 500
+              environment: Duckietown-Lf-Lfv-Navv-Silent-v0
+              environment-constructor: Simulator
+              # passed to the environment
+              environment-parameters:
+                seed: 123 # random seed
+                map_name: small_loop # loop_obstacles # loop_pedestrians
+                max_steps: 500000 # we don't want the gym to reset itself
+                domain_rand: 0
+                camera_width: 640
+                camera_height: 480
+                accept_start_angle_deg: 4 # start close to straight
+                full_transparency: true
+                distortion: true
+              # passed to the agent in the "misc" field
+              agent-info:
+                challenge: LF
+          build:
+            context: ./simulation
+        solution:
+            image: SUBMISSION_CONTAINER
+
+    features_required: {}
+
+  step2-scoring:
+    title: Scoring step
+    description: ""
+
+    timeout: 10
+    evaluation_parameters:
+      services:
+        scorer:
+          image: _
+          build:
+            context: ./scorer
+
+    features_required: {}
+
+  step3-videos:
+    title: Making videos
+    description: ""
+    timeout: 10
+    evaluation_parameters:
+      services:
+        videos:
+          image: _
+          build:
+            context: ./videos
+
+    features_required: {}
+
+
+transitions:
+  - [START, success, step1-simulation]
+  - [step1-simulation, success, step2-scoring]
+  - [step1-simulation, failed, FAILED]
+  - [step1-simulation, error, ERROR]
+  - [step2-scoring, success, step3-videos]
+  - [step2-scoring, failed, FAILED]
+  - [step2-scoring, error, ERROR]
+  - [step3-videos, success, SUCCESS]
+  - [step3-videos, failed, FAILED]
+  - [step3-videos, error, ERROR]
