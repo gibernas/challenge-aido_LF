@@ -1,10 +1,10 @@
-challenge: aido1_LF1_r2-v3
+challenge: aido1_LF1_r3-v3
 
-title: "[AIDO 1] Lane following (rev 2)"
+title: "[AIDO 1] Lane following (rev 3)"
 tags: [aido1, v3]
 description: null # load from file challenge.description.md
 
-protocol: aido1_remote2-v3
+protocol: aido1_remote3-v3
 # remote2: now the wheels velocities are used
 
 date-open: 2018-09-01t21:59:43.10-05:00
@@ -44,7 +44,7 @@ steps:
           image: _
           environment:
             solution_parameters:
-              env: Duckietown-Lf-Lfv-Navv-Silent-v0
+              env: Duckietown-Lf-Lfv-Navv-Silent-v1
 
             launcher_parameters:
               challenge: LF
@@ -58,10 +58,13 @@ steps:
                 map_name: loop_pedestrians # loop_obstacles # loop_pedestrians
                 max_steps: 500000 # we don't want the gym to reset itself
                 domain_rand: 0
-                camera_width: 160
-                camera_height: 120
+#                camera_width: 160
+#                camera_height: 120
+                camera_width: 640
+                camera_height: 480
                 accept_start_angle_deg: 4 # start close to straight
                 full_transparency: true
+                distortion: true
               # passed to the agent in the "misc" field
               agent-info:
                 challenge: LF

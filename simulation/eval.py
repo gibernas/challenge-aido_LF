@@ -102,14 +102,18 @@ import time
 
 def wait_for_file_yield(cie, fn, timeout, wait):
     t0 = time.time()
+    i = 0
+    notice_period = 10
     while not os.path.exists(fn):
         passed = int(time.time() - t0)
         to_wait = timeout - passed
-        cie.debug('Output %s not ready yet (%s secs passed, will wait %s secs more)' % (fn, passed, to_wait))
+        if i % notice_period == 0:
+            cie.debug('Output %s not ready yet (%s secs passed, will wait %s secs more)' % (fn, passed, to_wait))
         if time.time() > t0 + timeout:
             msg = 'Timeout of %s while waiting for %s.' % (timeout, fn)
             raise Timeout(msg)
         yield
+        i += 1
         time.sleep(wait)
 
 
