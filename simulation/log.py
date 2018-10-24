@@ -1,8 +1,10 @@
+import base64
 import json
 import os
 
 import cv2
 import numpy as np
+
 import rosbag
 import rospy
 from sensor_msgs.msg import CompressedImage
@@ -18,17 +20,20 @@ class ROSLogger(object):
 
     def start_episode(self, episode_name):
         self.logfile = os.path.join(self.logdir, episode_name, 'log.bag')
+        self.logfile_json = os.path.join(self.logdir, episode_name, 'log.gsl1.ds1.json')
         d = os.path.dirname(self.logfile)
         if not os.path.exists(d):
             os.makedirs(d)
         with open(self.logfile, 'w') as f:
             f.write('starting...')
         self.bag = rosbag.Bag(self.logfile, 'w')
+        self.json_file = open(self.logfile_json, 'w')
 
     def end_episode(self):
         self.bag.close()
         self.bag = None
         self.logfile = None
+        self.json_file.close()
 
     def write(self, topic, msg):
         if self.bag is None:
@@ -36,23 +41,28 @@ class ROSLogger(object):
             raise Exception(msg)
         self.bag.write(topic, msg)
 
+    def write_json(self, topic, timestamp, data):
+        s = {'~LogEntry': dict(topic=topic, timestamp=timestamp, data=data)}
+        sj = json.dumps(s)
+        self.json_file.write(sj + '\n')
+        self.json_file.flush()
+
     def close(self):
         if self.bag is not None:
             msg = 'end_episode() not called.'
             raise Exception(msg)
 
-    def log_misc(self, d):
-        """ Logs a dictionary as a json structor"""
-        print(d)
-        msg = String(json.dumps(d))
-        self.write('/gym/misc', msg)
-
     def log_action(self, t, action):
         self.write('/gym/action/0', Float32(action[0]))
         self.write('/gym/action/1', Float32(action[1]))
 
+        # self.write('/gym/actions', String(json.dumps(misc)))
+
+        self.write_json('actions', t, list(action))
+
     def log_misc(self, t, misc):
         self.write('/gym/misc', String(json.dumps(misc)))
+        self.write_json('misc', t, misc)
 
     def log_observations(self, t, observations):
         timestamp = rospy.Time.from_sec(t)
@@ -62,12 +72,16 @@ class ROSLogger(object):
         msg = d8_compressed_image_from_cv_image(observations_bgr, timestamp=timestamp)
         self.write('/gym/observations', msg)
 
+        data = {'~GenericData': {'base64': str(base64.b64encode(msg.data)), 'content-type': 'image/jpeg'}}
+        self.write_json('observations', t, data)
+
     def log_reward(self, t, reward):
         if not np.isfinite(reward):
             msg = 'Invalid reward received: %s' % reward
             raise Exception(msg)
 
         self.write('/gym/reward', Float32(reward))
+        self.write_json('reward', t, reward)
 
 
 def d8_compressed_image_from_cv_image(image_cv, same_timestamp_as=None, timestamp=None):

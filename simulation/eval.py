@@ -44,8 +44,11 @@ class GymEvaluator(dc.ChallengeEvaluator):
 
         d = cie.get_tmp_dir()
 
-        self.logdir = os.path.join(d, 'episodes')
+        # d = 'tmp-files'
 
+        self.logdir = os.path.join(d, 'episodes')
+        if not os.path.exists(self.logdir):
+            os.makedirs(self.logdir)
         # parameters for the submission
 
         cie.set_challenge_parameters(parameters)

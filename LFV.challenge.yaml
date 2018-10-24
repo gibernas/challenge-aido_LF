@@ -10,8 +10,8 @@ description: |
 protocol: aido1_remote3-v3
 
 
-date-open: 2018-09-01t21:59:43.10-05:00
-date-close: 2019-01-01t21:59:43.10-05:00
+date-open: 2018-10-01
+date-close: 2018-12-07
 
 roles: {}
 
@@ -102,6 +102,19 @@ steps:
 
     features_required: {}
 
+  step4-viz:
+    title: Visualization
+    description: ""
+    timeout: 10
+    evaluation_parameters:
+      services:
+        videos:
+          image: _
+          build:
+            context: ./visualization
+
+    features_required: {}
+
 
 transitions:
   - [START, success, step1-simulation]
@@ -111,6 +124,9 @@ transitions:
   - [step2-scoring, success, step3-videos]
   - [step2-scoring, failed, FAILED]
   - [step2-scoring, error, ERROR]
-  - [step3-videos, success, SUCCESS]
+  - [step3-videos, success, step4-viz]
   - [step3-videos, failed, FAILED]
   - [step3-videos, error, ERROR]
+  - [step4-viz, success, SUCCESS]
+  - [step4-viz, failed, FAILED]
+  - [step4-viz, error, ERROR]
