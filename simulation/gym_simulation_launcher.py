@@ -12,7 +12,7 @@ import yaml
 from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
     send_gym
 from gym_duckietown.envs import DuckietownEnv
-from gym_duckietown.simulator import Simulator
+from gym_duckietown.simulator import Simulator, ROAD_TILE_SIZE
 from log import ROSLogger
 
 # Settings
@@ -37,7 +37,6 @@ def env_as_yaml(name):
 
 
 def main():
-
     environment = os.environ.copy()
 
     launcher_parameters = env_as_yaml('launcher_parameters')
@@ -48,7 +47,7 @@ def main():
     num_episodes = launcher_parameters['episodes']
     steps_per_episodes = launcher_parameters['steps_per_episode']
     environment_class = launcher_parameters['environment-constructor']
-
+    include_map = launcher_parameters['include_map']
     agent_info = launcher_parameters['agent-info']
     LOG_DIR = environment['DTG_LOG_DIR']
 
@@ -76,7 +75,6 @@ def main():
     nfailures = 0
     episodes = ['ep%03d' % _ for _ in range(num_episodes)]
 
-
     logger.debug("Simulator listening to incoming connections...")
 
     observations = env.reset()
@@ -96,16 +94,16 @@ def main():
             data_logger.start_episode(episode_name)
 
             logger.info('Logging basic info')
-            data_logger.write_json('env_parameters', 0, env_parameters)
-            data_logger.write_json('environment_class', 0, environment_class)
-            data_logger.write_json('launcher_parameters', 0, launcher_parameters)
+            data_logger.write_json('env_parameters', None, env_parameters)
+            data_logger.write_json('environment_class', None, environment_class)
+            data_logger.write_json('launcher_parameters', None, launcher_parameters)
 
             logger.info('Now running episode')
             try:
                 nsteps = run_episode(env, data_logger, max_steps_per_episode=steps_per_episodes,
                                      command_socket=command_socket,
                                      command_poll=command_poll,
-                                     agent_info=agent_info)
+                                     agent_info=agent_info, include_map=include_map)
                 logger.info('Finished episode %s' % episode_name)
 
                 if nsteps >= min_nsteps:
@@ -152,9 +150,17 @@ def get_next_data(command_socket, command_poll):
             time.sleep(0.001)
 
 
-def run_episode(env, data_logger, max_steps_per_episode, command_socket, command_poll, agent_info):
+def run_episode(env, data_logger, max_steps_per_episode, command_socket, command_poll, agent_info,
+                include_map):
     ''' returns number of steps '''
     observations = env.reset()
+    e0 = env.unwrapped
+    map_info = dict(map_data=e0.map_data,
+                    map_name=e0.map_name,
+                    map_file_path=e0.map_file_path,
+                    tile_size=ROAD_TILE_SIZE)
+    data_logger.write_json('map_info', None, map_info)
+
     steps = 0
     while steps < max_steps_per_episode:
 
@@ -170,6 +176,13 @@ def run_episode(env, data_logger, max_steps_per_episode, command_socket, command
 
         if data["topic"] == 0:
             action = data['msg']
+
+            if np.linalg.norm(action) == 0 and steps == 0:
+                msg = "Command is 0 and we did not start yet. Assuming client not connected."
+                logger.debug(msg)
+                time.sleep(0.01)
+                continue
+
             # logger.debug('Stepping with data: %s' % data)
             start_render = time.time()
             observations, reward, done, misc_ = env.step(action)
@@ -179,13 +192,15 @@ def run_episode(env, data_logger, max_steps_per_episode, command_socket, command
 
             t = env.unwrapped.timestamp
 
-            start_log = time.time()
+            data_logger.write_json('render_time', t, delta_render)
+
+            # start_log = time.time()
             data_logger.log_misc(t=t, misc=misc_)
             data_logger.log_action(t=t, action=action)
             data_logger.log_observations(t=t, observations=observations)
             data_logger.log_reward(t=t, reward=reward)
-            delta_log = time.time() - start_log
-            misc_['delta_log'] = delta_log
+            # delta_log = time.time() - start_log
+            # misc_['delta_log'] = delta_log
             # logger.debug('Log time: %d ms' % (delta_log * 1000))
             steps += 1
 
@@ -212,6 +227,9 @@ def run_episode(env, data_logger, max_steps_per_episode, command_socket, command
         if data["topic"] in [0, 1]:
             agent_info.update(misc_)
             # logger.debug('sending misc = %s' % misc_)
+            if include_map:
+                agent_info['map_info'] = map_info
+
             send_gym(Global.publisher_socket, observations, reward, done, agent_info)
     else:
         logger.info('breaking because steps = %s' % max_steps_per_episode)

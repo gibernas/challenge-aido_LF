@@ -54,6 +54,7 @@ steps:
               steps_per_episode: 500
               environment: Duckietown-Lf-Lfv-Navv-Silent-v0
               environment-constructor: Simulator
+              include_map: true
               # passed to the environment
               environment-parameters:
                 seed: 123 # random seed

@@ -97,8 +97,9 @@ class GymEvaluator(dc.ChallengeEvaluator):
 
         cie.set_score('simulation-passed', 1)
 
+        cie.info('saving files')
         set_evaluation_dir(cie, 'episodes', self.logdir)
-
+        cie.info('score() terminated gracefully.')
 
 import time
 

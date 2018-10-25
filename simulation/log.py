@@ -43,9 +43,14 @@ class ROSLogger(object):
 
     def write_json(self, topic, timestamp, data):
         s = {'~LogEntry': dict(topic=topic, timestamp=timestamp, data=data)}
-        sj = json.dumps(s)
-        self.json_file.write(sj + '\n')
-        self.json_file.flush()
+        try:
+            sj = json.dumps(s)
+        except BaseException:
+            msg = 'Cannot serialize topic "%s":\n%s' % (topic, data)
+            print(msg)
+        else:
+            self.json_file.write(sj + '\n')
+            self.json_file.flush()
 
     def close(self):
         if self.bag is not None:
@@ -63,6 +68,8 @@ class ROSLogger(object):
     def log_misc(self, t, misc):
         self.write('/gym/misc', String(json.dumps(misc)))
         self.write_json('misc', t, misc)
+        for k, v in misc.items():
+            self.write_json(k, t, v)
 
     def log_observations(self, t, observations):
         timestamp = rospy.Time.from_sec(t)
