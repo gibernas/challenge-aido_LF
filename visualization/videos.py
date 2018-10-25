@@ -22,7 +22,7 @@ class Visualizer(dc.ChallengeScorer):
             draw_logs_main_(filename=log, output=output)
 
             fn_svg = os.path.join(output, 'drawing.svg')
-            fn_html = os.path.join(output, 'drawing-interactive.html')
+            fn_html = os.path.join(output, 'drawing.html')
             for f in [fn_svg, fn_html]:
                 cie.set_evaluation_file(f, f)
 
