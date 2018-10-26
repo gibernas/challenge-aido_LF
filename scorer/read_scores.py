@@ -51,16 +51,19 @@ def compute_rules_violation(log_file, cie):
         dt = timestamp - old_timestamp
         old_timestamp = timestamp
 
-        cur_pos = Simulator['cur_pos']
-        cur_angle_deg = Simulator['cur_angle']
+        # cur_pos = Simulator['cur_pos']
+        # cur_angle_deg = Simulator['cur_angle']
 
-        lane_position = Simulator['lane_position']
-        angle_rad = lane_position['angle_rad']
-        invalid = int(np.abs(angle_rad) > np.deg2rad(VALID_ANGLE_LIMIT_DEG))
+        if 'lane_position' in Simulator:
+            lane_position = Simulator['lane_position']
+            angle_rad = lane_position['angle_rad']
+            invalid = int(np.abs(angle_rad) > np.deg2rad(VALID_ANGLE_LIMIT_DEG))
 
-        accum_score_good_angle += dt * np.abs(angle_rad)**2
-        accum_score_valid_direction += dt * invalid
-
+            accum_score_good_angle += dt * np.abs(angle_rad)**2
+            accum_score_valid_direction += dt * invalid
+        else:
+            m = 'Message lacks lane_position field'
+            cie.debug(m)
     stats = {}
     stats['traveled_tiles'] = len(set(tile_coords_history))
     stats['good_angle'] = float(accum_score_good_angle)
@@ -71,5 +74,5 @@ def compute_rules_violation(log_file, cie):
 
 if __name__ == '__main__':
     cie = ChallengeInterfaceEvaluatorConcrete()
-    print read_scores_data('example.bag', cie)
-    print compute_rules_violation('example.bag', cie)
+    print(read_scores_data('example.bag', cie))
+    print(compute_rules_violation('example.bag', cie))

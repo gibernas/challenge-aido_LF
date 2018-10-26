@@ -9,18 +9,19 @@ import traceback
 import numpy as np
 import yaml
 
-from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
-    send_gym
-from gym_duckietown.envs import DuckietownEnv
-from gym_duckietown.simulator import Simulator, ROAD_TILE_SIZE
-from log import ROSLogger
-
 # Settings
 DEBUG = True
 
 logging.basicConfig()
 logger = logging.getLogger('launcher')
 logger.setLevel(logging.DEBUG)
+
+from duckietown_challenges import InvalidEnvironment
+from duckietown_slimremote.networking import make_pull_socket, has_pull_message, receive_data, make_pub_socket, \
+    send_gym
+from gym_duckietown.envs import DuckietownEnv
+from gym_duckietown.simulator import Simulator, ROAD_TILE_SIZE
+from log import ROSLogger
 
 
 def env_as_yaml(name):
@@ -37,6 +38,9 @@ def env_as_yaml(name):
 
 
 def main():
+    from duckietown_challenges.col_logging import setup_logging
+    setup_logging()
+
     environment = os.environ.copy()
 
     launcher_parameters = env_as_yaml('launcher_parameters')
@@ -75,11 +79,15 @@ def main():
     nfailures = 0
     episodes = ['ep%03d' % _ for _ in range(num_episodes)]
 
-    logger.debug("Simulator listening to incoming connections...")
-
-    observations = env.reset()
+    try:
+        observations = env.reset()
+    except:
+        msg = 'Could not initialize environment:\n%s' % traceback.format_exc()
+        raise InvalidEnvironment(msg)
 
     try:
+        logger.debug("Simulator listening to incoming connections...")
+
         while episodes:
             if nfailures >= MAX_FAILURES:
                 msg = 'Too many failures: %s' % nfailures
@@ -100,7 +108,8 @@ def main():
 
             logger.info('Now running episode')
             try:
-                nsteps = run_episode(env, data_logger, max_steps_per_episode=steps_per_episodes,
+                nsteps = run_episode(env, data_logger,
+                                     max_steps_per_episode=steps_per_episodes,
                                      command_socket=command_socket,
                                      command_poll=command_poll,
                                      agent_info=agent_info, include_map=include_map)
@@ -113,22 +122,33 @@ def main():
                     logger.error('episode too short with %s steps' % nsteps)
                     nfailures += 1
 
+            except:
+                msg = 'Anomalous error from run_episode():\n%s' % traceback.format_exc()
+                logger.error(msg)
+                raise
             finally:
                 data_logger.end_episode()
+
+    except:
+        msg = 'Anomalous error while running episodes:\n%s' % traceback.format_exc()
+        logger.error(msg)
+        raise
 
     finally:
         data_logger.close()
 
-    logger.info('Simulation done.')
-    agent_info['simulation_done'] = True
+        logger.info('Simulation done.')
 
-    send_gym(
-            socket=Global.publisher_socket,
-            img=observations,
-            reward=0.0,
-            done=True,
-            misc=agent_info
-    )
+        if Global.publisher_socket is not None:
+            agent_info['simulation_done'] = True
+
+            send_gym(
+                    socket=Global.publisher_socket,
+                    img=observations,
+                    reward=0.0,
+                    done=True,
+                    misc=agent_info
+            )
     logger.info('Clean exit.')
 
 

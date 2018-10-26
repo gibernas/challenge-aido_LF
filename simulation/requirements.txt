@@ -2,4 +2,7 @@ numpy
 opencv-python-headless
 -e git://github.com/duckietown/duckietown-shell.git@v3#egg=duckietown-shell
 -e git://github.com/duckietown/duckietown-challenges.git@v3#egg=duckietown-challenges
+-e git+https://github.com/duckietown/duckietown-slimremote.git@aido1_remote3-v3#egg=duckietown-slimremote
+
 base58
+

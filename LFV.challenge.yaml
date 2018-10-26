@@ -52,7 +52,7 @@ steps:
               challenge: LF
               episodes: 5
               steps_per_episode: 500
-              environment: Duckietown-Lf-Lfv-Navv-Silent-v0
+              #environment: Duckietown-Lf-Lfv-Navv-Silent-v0
               environment-constructor: Simulator
               include_map: true
               # passed to the environment
