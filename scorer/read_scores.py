@@ -50,10 +50,7 @@ def compute_rules_violation(log_file, cie):
 
         dt = timestamp - old_timestamp
         old_timestamp = timestamp
-
-        # cur_pos = Simulator['cur_pos']
-        # cur_angle_deg = Simulator['cur_angle']
-
+ 
         if 'lane_position' in Simulator:
             lane_position = Simulator['lane_position']
             angle_rad = lane_position['angle_rad']
@@ -64,6 +61,7 @@ def compute_rules_violation(log_file, cie):
         else:
             m = 'Message lacks lane_position field'
             cie.debug(m)
+
     stats = {}
     stats['traveled_tiles'] = len(set(tile_coords_history))
     stats['good_angle'] = float(accum_score_good_angle)

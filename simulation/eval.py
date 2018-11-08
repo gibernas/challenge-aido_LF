@@ -2,6 +2,7 @@
 import os
 import subprocess
 import sys
+import time
 
 import duckietown_challenges as dc
 import yaml
@@ -100,8 +101,6 @@ class GymEvaluator(dc.ChallengeEvaluator):
         cie.info('saving files')
         set_evaluation_dir(cie, 'episodes', self.logdir)
         cie.info('score() terminated gracefully.')
-
-import time
 
 
 def wait_for_file_yield(cie, fn, timeout, wait):

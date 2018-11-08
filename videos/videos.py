@@ -2,12 +2,13 @@
 import os
 
 import duckietown_challenges as dc
-from duckietown_utils import locate_files
-from make_video import make_video_bag
 
 
 class VideoMaker(dc.ChallengeScorer):
     def score(self, cie):
+        from duckietown_utils import locate_files
+        from make_video import make_video_bag
+
         # get bag from previous steps
         logdir = cie.get_completed_step_evaluation_file('step1-simulation', 'episodes')
 

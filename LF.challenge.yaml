@@ -17,22 +17,41 @@ roles: {}
 
 scoring:
     scores:
-    - name: traveled_tiles_median
+
+    - name: survival_time_median
+      short: Survival time
       description: |
-        Median number of tiles traveled.
+        This is the median survival time. The simulation
+        is terminated when the car goes outside of the road
+        or it crashes with an obstacle.
       order: higher-is-better
-    - name: survival_time_mean
+      discretization: 0.3
+
+    - name: in-drivable-lane_median
+      short: Major infractions
       description: |
-          Average survival time in seconds.
+        This is the median of the time spent outside of the drivable zones.
+        For example this penalizes driving in the wrong lane.
+      order: lower-is-better
+      discretization: 0.2
+
+    # performance
+    - name: driven_lanedir_median
+      short: Traveled distance
+      description: |
+        This is the median distance traveled, *along a lane*.
+        (That is, going in circles will not make this metric increase.)
       order: higher-is-better
-    - name: good_angle_mean
+      discretization: 0.3
+
+    # naturality
+    - name: deviation-center-line_median
+      short: Lateral deviation
       description: |
-        Integral of the lane angle absolute value.
+        This is the median lateral deviation from the center line.
       order: lower-is-better
-    - name: valid_direction_mean
-      description: |
-        Checking that the angle was always less than 60.
-      order: lower-is-better
+      discretization: 0.01
+
 
 steps:
   step1-simulation:
@@ -52,9 +71,10 @@ steps:
               challenge: LF
               episodes: 5
               steps_per_episode: 500
-              #environment: Duckietown-Lf-Lfv-Navv-Silent-v0
-              environment-constructor: Simulator
               include_map: true
+
+              environment-constructor: Simulator
+
               # passed to the environment
               environment-parameters:
                 seed: 123 # random seed
@@ -109,7 +129,7 @@ steps:
     timeout: 10
     evaluation_parameters:
       services:
-        videos:
+        visualization:
           image: _
           build:
             context: ./visualization

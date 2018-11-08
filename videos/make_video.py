@@ -1,8 +1,8 @@
-import os
+import tempfile
 
 from duckietown_utils import d8n_make_video_from_bag
 from duckietown_utils.bag_visualization import NotEnoughFramesInSlice
-import tempfile
+
 
 def make_video_bag(bag_filename, tmp_dir='.'):
     filename = tempfile.mktemp(".mp4", dir=tmp_dir)

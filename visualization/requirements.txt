@@ -3,7 +3,7 @@
 -e git://github.com/duckietown/duckietown-challenges.git@v3#egg=duckietown-challenges
 
 
--e git://github.com/duckietown/gym-duckietown.git@aido1_lf1_r3-v3#egg=gym-duckietown
-duckietown-world==1.0.4
+# -e git://github.com/duckietown/gym-duckietown.git@aido1_lf1_r3-v3#egg=gym-duckietown
+-e git+https://github.com/duckietown/gym-duckietown.git@aido1_lf1_r3-v3#egg=gym-duckietown
 
-beautifulsoup4>=4.6.3
+

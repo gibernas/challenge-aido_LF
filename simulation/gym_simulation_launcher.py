@@ -173,11 +173,36 @@ def get_next_data(command_socket, command_poll):
 def run_episode(env, data_logger, max_steps_per_episode, command_socket, command_poll, agent_info,
                 include_map):
     ''' returns number of steps '''
-    observations = env.reset()
+
     e0 = env.unwrapped
+
+    while True:
+        observations = env.reset()
+
+        lp = e0.get_lane_pos2(e0.cur_pos, e0.cur_angle)
+
+        i, j = e0.get_grid_coords(e0.cur_pos)
+        tile = e0._get_tile(i, j)
+
+        kind = tile['kind']
+        # angle = tile['angle']
+
+        # Each tile will have a unique set of control points,
+        # Corresponding to each of its possible turns
+
+        is_straight = kind.startswith('straight')
+
+        logger.info('Sampled lane pose %s' % str(lp))
+        logger.info('Sampled tile  %s %s %s' % (tile['coords'], tile['kind'], tile['angle']))
+
+        if not is_straight:
+            continue
+
+        if lp.dist > +0.04:
+            break
+
     map_info = dict(map_data=e0.map_data,
                     map_name=e0.map_name,
-                    map_file_path=e0.map_file_path,
                     tile_size=ROAD_TILE_SIZE)
     data_logger.write_json('map_info', None, map_info)
 
