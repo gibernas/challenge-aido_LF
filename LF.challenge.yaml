@@ -18,6 +18,17 @@ roles: {}
 scoring:
     scores:
 
+    # performance
+    - name: driven_lanedir_median
+      short: Traveled distance
+      description: |
+        This is the median distance traveled, *along a lane*.
+        (That is, going in circles will not make this metric increase.)
+
+        This is discretized to tiles.
+      order: higher-is-better
+      discretization: 0.62
+
     - name: survival_time_median
       short: Survival time
       description: |
@@ -25,7 +36,16 @@ scoring:
         is terminated when the car goes outside of the road
         or it crashes with an obstacle.
       order: higher-is-better
-      discretization: 0.3
+      discretization: 2.0
+
+
+    # naturality
+    - name: deviation-center-line_median
+      short: Lateral deviation
+      description: |
+        This is the median lateral deviation from the center line.
+      order: lower-is-better
+      discretization: 0.01
 
     - name: in-drivable-lane_median
       short: Major infractions
@@ -35,22 +55,6 @@ scoring:
       order: lower-is-better
       discretization: 0.2
 
-    # performance
-    - name: driven_lanedir_median
-      short: Traveled distance
-      description: |
-        This is the median distance traveled, *along a lane*.
-        (That is, going in circles will not make this metric increase.)
-      order: higher-is-better
-      discretization: 0.3
-
-    # naturality
-    - name: deviation-center-line_median
-      short: Lateral deviation
-      description: |
-        This is the median lateral deviation from the center line.
-      order: lower-is-better
-      discretization: 0.01
 
 
 steps:

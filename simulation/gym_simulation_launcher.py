@@ -176,6 +176,7 @@ def run_episode(env, data_logger, max_steps_per_episode, command_socket, command
 
     e0 = env.unwrapped
 
+    # start on the right lane
     while True:
         observations = env.reset()
 
