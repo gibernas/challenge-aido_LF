@@ -1,6 +1,6 @@
-challenge: aido1_LFV_r1-v3
+challenge: aido1_LFV_r2-v3
 
-title: "LFV - Lane following with vehicles (rev. 1)"
+title: "LFV - Lane following with vehicles (rev. 2 - dynamic, 20 samples)"
 tags: [aido1, LFV, v3]
 description: |
   Lane following with vehicles.
@@ -20,7 +20,7 @@ scoring:
     scores:
 
     # performance
-    - name: driven_lanedir_median
+    - name: driven_lanedir_consec_median
       short: Traveled distance
       description: |
         This is the median distance traveled, *along a lane*.
@@ -73,20 +73,20 @@ steps:
 
             launcher_parameters:
               challenge: LF
-              episodes: 5
+              episodes: 7
               steps_per_episode: 500
               #environment: Duckietown-Lf-Lfv-Navv-Silent-v0
               environment-constructor: Simulator
               include_map: true
               # passed to the environment
               environment-parameters:
-                seed: 123 # random seed
-                map_name: loop_obstacles
+                seed: 232 # random seed
+                map_name: loop_dyn_duckiebots
                 max_steps: 500000 # we don't want the gym to reset itself
                 domain_rand: 0
                 camera_width: 640
                 camera_height: 480
-                accept_start_angle_deg: 4 # start close to straight
+                accept_start_angle_deg: 6 # start close to straight
                 full_transparency: true
                 distortion: true
               # passed to the agent in the "misc" field
