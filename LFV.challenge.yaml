@@ -1,6 +1,6 @@
-challenge: aido1_LFV_r2-v3
+challenge: aido1_LFV_r2_cont-v3
 
-title: "LFV - Lane following with vehicles (rev. 2 - dynamic, 20 samples)"
+title: "LFV - Lane following with vehicles (after AIDO)"
 tags: [aido1, LFV, v3]
 description: |
   Lane following with vehicles.
@@ -10,8 +10,9 @@ description: |
 protocol: aido1_remote3-v3
 
 
-date-open: 2018-10-01
-date-close: 2018-12-07
+date-open: 2018-12-07
+date-close: 2019-12-07
+
 
 roles: {}
 

@@ -1,6 +1,6 @@
-challenge: aido1_LF1_r4-v3
+challenge: aido1_LF1_r4_cont-v3
 
-title: "LF - Lane following (rev. 4, more samples) "
+title: "LF - Lane following (after AIDO)"
 tags: [aido1, LF, v3]
 description: |
   Lane following challenge.
@@ -10,8 +10,8 @@ description: |
 protocol: aido1_remote3-v3
 
 
-date-open: 2018-10-01
-date-close: 2018-12-07
+date-open: 2018-12-07
+date-close: 2019-12-07
 
 roles: {}
 
