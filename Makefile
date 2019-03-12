@@ -17,3 +17,9 @@ define-challenge-LF-no-cache:
 
 define-challenge-LFV-no-cache:
 	dts challenges define --config LFV.challenge.yaml  --no-cache
+
+
+test1:
+	docker-compose -f docker-compose-devel.yaml down -v
+	# docker-compose -f docker-compose-devel.yaml rm -v
+	docker-compose -f docker-compose-devel.yaml up -V --build

@@ -1,11 +1,11 @@
-challenge: aido1_LF1_r4_cont-v3
+challenge: aido2_LF_r1-v3
 
-title: "LF - Lane following (after AIDO)"
-tags: [aido1, LF, v3]
+title: "LF - Lane following "
+tags: [aido2, LF, v3]
 description: |
   Lane following challenge.
 
-  This challenge is described in the detail [in the book](http://docs.duckietown.org/DT18/AIDO/out/index.html).
+  This challenge is described in the detail [in the book](http://docs.duckietown.org/DT19/AIDO/out/index.html).
 
 protocol: aido1_remote3-v3
 
@@ -97,6 +97,11 @@ steps:
             context: ./simulation
         solution:
             image: SUBMISSION_CONTAINER
+            environment:
+              AIDONODE_DATA_IN:
+              AIDONODE_DATA_OUT:
+              AIDONODE_META_IN:
+              AIDONODE_META_OUT:
 
     features_required: {}
 

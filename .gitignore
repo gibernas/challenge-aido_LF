@@ -3,3 +3,4 @@ simulation/evaluation.log.bag
 simulation/log.pyc
 *.pyc
 *.bag
+logs

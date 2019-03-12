@@ -1,0 +1,8 @@
+-e git://github.com/duckietown/aido-protocols.git@v4-devel3#egg=aido-protocols
+-e git://github.com/AndreaCensi/zuper_utils.git@v4-devel#egg=zuper_utils
+
+numpy==1.16.2
+
+-e git://github.com/duckietown/duckietown-shell.git@v3#egg=duckietown-shell
+-e git://github.com/duckietown/duckietown-challenges.git@v3#egg=duckietown-challenges
+
