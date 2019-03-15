@@ -1,42 +1,26 @@
 #!/usr/bin/env python3
-import json
-import os
-import traceback
 from dataclasses import dataclass
 
 import numpy as np
 import yaml
 
 import geometry
-from aido_node_wrapper import wrap_direct, Context
-from aido_nodes import logger
-from aido_schemas import PWMCommands, JPGImage, Duckiebot1Observations, Duckiebot1Commands
-from aido_schemas.protocol_simulator import SetMap, SpawnRobot, RobotName, StateDump, Step, RobotInterfaceDescription, \
-    RobotObservations, RobotState, protocol_simulator, SetRobotCommands, RobotPerformance, Metric, PerformanceMetrics
+from aido_schemas import wrap_direct, Context, PWMCommands, JPGImage, Duckiebot1Observations, EpisodeStart, \
+    DB18RobotObservations, DB18SetRobotCommands, SetMap, SpawnRobot, RobotName, StateDump, Step, \
+    RobotInterfaceDescription, RobotState, RobotPerformance, Metric, PerformanceMetrics, SimulationState
+from aido_schemas.schemas import protocol_simulator_duckiebot1
 from gym_duckietown.envs import DuckietownEnv
-from gym_duckietown.simulator import Simulator
+from gym_duckietown.simulator import Simulator, NotInLane
 
-
-# Specialize to our datatype
-
-
-@dataclass
-class MySetRobotCommands(SetRobotCommands):
-    robot_name: RobotName
-    t_effective: float
-    commands: Duckiebot1Commands
-
-
-@dataclass
-class MyRobotObservations(RobotObservations):
-    robot_name: RobotName
-    t_effective: float
-    observations: Duckiebot1Observations
+from zuper_nodes import timestamp_from_seconds, TimeSpec, TimingInfo
 
 
 @dataclass
 class MyRobotInfo:
     pose: np.ndarray
+    velocity: np.ndarray
+    last_action: np.ndarray
+    wheels_velocities: np.ndarray
 
 
 @dataclass
@@ -46,34 +30,28 @@ class MyRobotState(RobotState):
     state: MyRobotInfo
 
 
-def env_as_yaml(name):
-    environment = os.environ.copy()
-    if not name in environment:
-        msg = 'Could not find variable "%s"; I know:\n%s' % (name, json.dumps(environment, indent=4))
-        raise Exception(msg)
-    v = environment[name]
-    try:
-        return yaml.load(v)
-    except Exception as e:
-        msg = 'Could not load YAML: %s\n\n%s' % (e, v)
-        raise Exception(msg)
+@dataclass
+class GymDuckiebotSimulatorConfig:
+    """
+        env_constructor: either "Simulator" or "DuckietownEnv"
+
+
+
+    """
+    env_constructor: str = 'Simulator'
+    env_parameters: dict = None
 
 
 class GymDuckiebotSimulator:
+    config: GymDuckiebotSimulatorConfig = GymDuckiebotSimulatorConfig()
+
     current_time: float
     reward_cumulative: float
+    episode_name: str
 
-    def init(self, context: Context):
-        launcher_parameters = env_as_yaml('launcher_parameters')
-
-        logger.info('launcher parameters:\n\n%s' % json.dumps(launcher_parameters, indent=4))
-
-        env_parameters = launcher_parameters['environment-parameters']
-
-        environment_class = launcher_parameters['environment-constructor']
-
-        from gym_duckietown import __version__
-        logger.debug('using gym-duckietown version %s' % __version__)
+    def init(self):
+        env_parameters = self.config.env_parameters or {}
+        environment_class = self.config.env_constructor
 
         name2class = {
             'DuckietownEnv': DuckietownEnv,
@@ -86,27 +64,81 @@ class GymDuckiebotSimulator:
         klass = name2class[environment_class]
         self.env = klass(**env_parameters)
         self.robot_name = None
+        self.spawn_pose = None
 
-        self.last_action = np.array([0.0, 0.0])
+    def on_received_seed(self, context: Context, data: int):
+        context.info(f'seed({data})')
 
-    def on_received_seed(self, context, data: int):
-        context.log(f'seed({data})')
+    def on_received_clear(self, context: Context):
+        context.info(f'clear()')
 
-    def on_received_clear(self, context):
-        context.log(f'clear()')
+    def on_received_set_map(self, context: Context, data: SetMap):
+        context.info(f'set_map({data})')
+        yaml_str: str = data.map_data
 
-    def on_received_set_map(self, context, data: SetMap):
-        context.log(f'set_map({data})')
+        map_data = yaml.load(yaml_str)
 
-    def on_received_spawn_robot(self, context, data: SpawnRobot):
-        # TODO: check location
+        self.env._interpret_map(map_data)
+
+    def on_received_spawn_robot(self, data: SpawnRobot):
+        self.spawn_configuration = data.configuration
         self.robot_name = data.robot_name
 
-    def on_received_get_robot_interface_description(self, context, data: RobotName):
+    def _set_pose(self, context):
+        # TODO: check location
+        e0 = self.env
+
+        q = self.spawn_configuration.pose
+
+        cur_pos, cur_angle = e0.weird_from_cartesian(q)
+        q2 = e0.cartesian_from_weird(cur_pos, cur_angle)
+        e0.cur_pos = cur_pos
+        e0.cur_angle = cur_angle
+
+        i, j = e0.get_grid_coords(e0.cur_pos)
+        tile = e0._get_tile(i, j)
+
+        msg = ''
+        msg += f'\ni, j: {i}, {j}'
+        msg += '\nPose: %s' % geometry.SE2.friendly(q)
+        msg += '\nPose: %s' % geometry.SE2.friendly(q2)
+        msg += '\nCur pos: %s' % cur_pos
+        context.info(msg)
+
+        if tile is None:
+            msg = 'Current pose is not in a tile.'
+
+            raise Exception(msg)
+
+        kind = tile['kind']
+        # angle = tile['angle']
+
+        is_straight = kind.startswith('straight')
+
+        context.info('Sampled tile  %s %s %s' % (tile['coords'], tile['kind'], tile['angle']))
+
+        if not is_straight:
+            context.info('not on a straight tile')
+
+        valid = e0._valid_pose(cur_pos, cur_angle)
+        context.info('valid: %s' % valid)
+
+        try:
+            lp = e0.get_lane_pos2(e0.cur_pos, e0.cur_angle)
+            context.info('Sampled lane pose %s' % str(lp))
+            context.info('dist: %s' % lp.dist)
+        except NotInLane:
+            raise
+
+        if not valid:
+            msg = 'Not valid'
+            context.error(msg)
+
+    def on_received_get_robot_interface_description(self, context: Context, data: RobotName):
         rid = RobotInterfaceDescription(robot_name=data, observations=JPGImage, commands=PWMCommands)
         context.write('robot_interface_description', rid)
 
-    def on_received_get_robot_performance(self, context, data: RobotName):
+    def on_received_get_robot_performance(self, context: Context, data: RobotName):
         metrics = {}
         metrics['survival_time'] = Metric(higher_is_better=True, cumulative_value=self.current_time,
                                           description="Survival time.")
@@ -116,28 +148,31 @@ class GymDuckiebotSimulator:
         rid = RobotPerformance(robot_name=data, t_effective=self.current_time, performance=pm)
         context.write('robot_performance', rid)
 
-    def on_received_start_episode(self, context):
-        context.log(f'start_episode()')
+    def on_received_episode_start(self, context, data: EpisodeStart):
         self.current_time = 0.0
         self.reward_cumulative = 0
+        self.episode_name = data.episode_name
+        self.last_action = np.array([0.0, 0.0])
         try:
             self.env.reset()
-        except:
-            msg = 'Could not initialize environment:\n%s' % traceback.format_exc()
-            raise Exception(msg)
+        except BaseException as e:
+            msg = 'Could not initialize environment'
+            raise Exception(msg) from e
 
-    def on_received_step(self, context, data: Step):
+        self._set_pose(context)
+
+    def on_received_step(self, context: Context, data: Step):
         delta_time = data.until - self.current_time
         if delta_time > 0:
             self.env.update_physics(self.last_action, delta_time=delta_time)
         else:
             context.warning(f'Already at time {data.until}')
 
-        done, reward, msg = self.env._compute_done_reward()
-        self.reward_cumulative += reward * delta_time
+        d = self.env._compute_done_reward()
+        self.reward_cumulative += d.reward * delta_time
         self.current_time = data.until
 
-    def on_received_set_robot_commands(self, data: MySetRobotCommands):
+    def on_received_set_robot_commands(self, data: DB18SetRobotCommands):
         wheels = data.commands.wheels
         action = np.array([wheels.motor_left, wheels.motor_right])
         action = np.clip(action, -1.0, +1.0)
@@ -149,25 +184,47 @@ class GymDuckiebotSimulator:
         jpg_data = rgb2jpg(obs)
         camera = JPGImage(jpg_data)
         obs = Duckiebot1Observations(camera)
-        ro = MyRobotObservations(self.robot_name, self.current_time, obs)
-        context.write('robot_observations', ro, with_schema=True)
+        ro = DB18RobotObservations(self.robot_name, self.current_time, obs)
+        # timing information
+        t = timestamp_from_seconds(self.current_time)
+        ts = TimeSpec(time=t, frame=self.episode_name, clock=context.get_hostname())
+        timing = TimingInfo(acquired={'image': ts})
+        context.write('robot_observations', ro, with_schema=True, timing=timing)
 
     def on_received_get_robot_state(self, context):
-        info = self.env.get_agent_info()
-        pos = info['Simulator']['cur_pos_cartesian']
-        theta = info['Simulator']['cur_angle']
+        env = self.env
+        speed = env.speed
+        omega = 0.0  # XXX
 
-        q = geometry.SE2_from_translation_angle(pos, theta)
-        state = MyRobotInfo(pose=q)
-        rs = MyRobotState(robot_name=self.robot_name, t_effective=self.current_time, state=state)
-        context.write('robot_state', rs)
+        q = env.cartesian_from_weird(env.cur_pos, env.cur_angle)
+        v = geometry.se2_from_linear_angular([speed, 0], omega)
+        state = MyRobotInfo(pose=q,
+                            velocity=v,
+                            last_action=env.last_action,
+                            wheels_velocities=env.wheelVels)
+        rs = MyRobotState(robot_name=self.robot_name,
+                          t_effective=self.current_time,
+                          state=state)
+        # timing information
+        t = timestamp_from_seconds(self.current_time)
+        ts = TimeSpec(time=t, frame=self.episode_name, clock=context.get_hostname())
+        timing = TimingInfo(acquired={'state': ts})
+        context.write('robot_state', rs, timing=timing, with_schema=True)
 
-    def on_received_dump_state(self, context):
+    def on_received_dump_state(self, context: Context):
         context.write('dump_state', StateDump(None))
+
+    def on_received_get_sim_state(self, context: Context):
+        d = self.env._compute_done_reward()
+        done = d.done
+        done_why = d.done_why
+        done_code = d.done_code
+        sim_state = SimulationState(done, done_why, done_code)
+        context.write('sim_state', sim_state)
 
 
 # noinspection PyUnresolvedReferences
-def rgb2jpg(rgb) -> bytes:
+def rgb2jpg(rgb: np.ndarray) -> bytes:
     import cv2
     bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
     compress = cv2.imencode('.jpg', bgr)[1]
@@ -177,9 +234,7 @@ def rgb2jpg(rgb) -> bytes:
 
 def main():
     node = GymDuckiebotSimulator()
-    protocol = protocol_simulator
-    protocol.inputs['set_robot_commands'] = MySetRobotCommands
-    protocol.outputs['robot_observations'] = MyRobotObservations
+    protocol = protocol_simulator_duckiebot1
     protocol.outputs['robot_state'] = MyRobotState
     wrap_direct(node=node, protocol=protocol)
 

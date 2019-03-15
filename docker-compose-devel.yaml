@@ -1,100 +1,64 @@
 version: '3'
 services:
-#  evaluator:
-#    environment:
-#      solution_parameters: |
-#        {env: Duckietown-Lf-Lfv-Navv-Silent-v1}
-#
-#      launcher_parameters: |
-#        challenge: LF
-#        episodes: 7
-#        steps_per_episode: 500
-#        include_map: true
-#
-#        environment-constructor: Simulator
-#
-#        # passed to the environment
-#        environment-parameters:
-#          seed: 123 # random seed
-#          map_name: loop_empty # loop_obstacles # loop_pedestrians
-#          max_steps: 500001 # we don't want the gym to reset itself
-#          domain_rand: 0
-#          camera_width: 640
-#          camera_height: 480
-#          accept_start_angle_deg: 6 # start close to straight
-#          full_transparency: true
-#          distortion: true
-#        # passed to the agent in the "misc" field
-#        agent-info:
-#          challenge: LF
-#    build:
-#      context: ./simulation
-#    volumes:
-#      - fifos:/fifos
-#      - ./simulation:/project
   experiment_manager:
     environment:
+      DISABLE_CONTRACTS: 1
       AIDONODE_ENCODING: cbor
-      DTG_LOG_DIR: /logs
       experiment_manager_parameters: |
-        challenge: LF
-        episodes: 7
+        episodes_per_scenario: 1
         steps_per_episode: 14
         min_nsteps: 1
+        seed: 42
     build:
       context: ./experiment_manager
-    volumes:
+    volumes: &volumes
       - ./logs:/logs
       - fifos:/fifos
-      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/aido-protocols/src:/project/src/aido-protocols/src
-      - /data/work/zupermind/env/zuper_json:/project/src/zuper-utils
-#      - ./experiment_manager:/project
+      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/aido-protocols/src:/project/src/aido-protocols/src:ro
+      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/simulators/duckietown-world/src:/project/src/duckietown-world/src:ro
+      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/zuper_nodes/src:/project/src/zuper-nodes/src:ro
+      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/zuper_json/src:/project/src/zuper-utils/src:ro
+      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/simulators/gym-duckietown:/gym-duckietown:ro
+#      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/challenges/duckietown-challenges/src:/project/src/duckietown-challenges/src:ro
+      #      - ./experiment_manager:/project
+  scenario_maker:
+    environment:
+      DISABLE_CONTRACTS: 1
+      AIDONODE_ENCODING: cbor
+      AIDONODE_DATA_IN: /fifos/scenario_maker-in
+      AIDONODE_DATA_OUT: fifo:/fifos/scenario_maker-out
+      AIDONODE_CONFIG: |
+        maps:
+        - 4way
+        scenarios_per_map: 2
+    build:
+      context: ./scenario_maker
+    volumes: *volumes
+      #      - ./experiment_manager:/project
   simulator:
     build:
       context: ./simulator_only
     environment:
       AIDONODE_DATA_IN: /fifos/simulator-in
       AIDONODE_DATA_OUT: fifo:/fifos/simulator-out
-      AIDONODE_META_IN:
-      AIDONODE_META_OUT:
       AIDONODE_ENCODING: cbor
-      launcher_parameters: |
-        challenge: LF
-        episodes: 7
-        steps_per_episode: 500
-        include_map: true
-
-        environment-constructor: Simulator
-
-        # passed to the environment
-        environment-parameters:
-          seed: 123 # random seed
-          map_name: loop_empty # loop_obstacles # loop_pedestrians
+      AIDONODE_CONFIG: |
+        env_constructor: Simulator
+        env_parameters:
           max_steps: 500001 # we don't want the gym to reset itself
           domain_rand: 0
           camera_width: 640
           camera_height: 480
-          accept_start_angle_deg: 6 # start close to straight
-          full_transparency: true
           distortion: true
-    volumes:
-      - fifos:/fifos
-      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/aido-protocols/src:/project/src/aido-protocols/src
-      - /data/work/zupermind/env/zuper_json:/project/src/zuper-utils
-      - ./simulator_only:/project
-      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/simulators/gym-duckietown:/gym-duckietown
+    volumes: *volumes
+
   solution:
-    image: duckietown/aidonode-random_agent:v4-devel3
+    image: duckietown/aidonode-random_agent:v4
     environment:
       AIDONODE_DATA_IN: /fifos/agent-in
       AIDONODE_DATA_OUT: fifo:/fifos/agent-out
-      AIDONODE_META_IN:
-      AIDONODE_META_OUT:
       AIDONODE_ENCODING: cbor
-    volumes:
-      - fifos:/fifos
-      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/aido-protocols/src:/project/src/aido-protocols/src
-      - /data/work/zupermind/env/zuper_json:/project/src/zuper-utils
-      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/aido-protocols/minimal-nodes-stubs/random_agent:/project
+    volumes: *volumes
+      #- /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/aido-protocols/minimal-nodes-stubs/random_agent:/project:ro
 volumes:
   fifos:

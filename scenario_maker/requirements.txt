@@ -4,5 +4,8 @@
 
 numpy==1.16.2
 
-
 PyGeometry
+
+
+-e git://github.com/duckietown/duckietown-world.git@aido2_lf_r1#egg=duckietown-world
+

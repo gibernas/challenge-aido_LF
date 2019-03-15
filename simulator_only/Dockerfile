@@ -8,11 +8,8 @@ COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
 RUN apt-get update && apt-get install -y libgtk2.0-dev
-#RUN conda install -c conda-forge opencv
-RUN pip install  PyGeometry
+# RUN conda install -c conda-forge opencv
+
 COPY . .
-
-
-#ENTRYPOINT ["python3", "gym_bridge.py"]
 
 ENTRYPOINT ["/bin/bash", "/project/launch.sh"]

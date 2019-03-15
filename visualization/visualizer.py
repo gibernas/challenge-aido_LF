@@ -29,36 +29,38 @@ class Visualizer(dc.ChallengeScorer):
         if not episodes:
             msg = 'Could not find any episode.'
             raise Exception(msg)
-        else:
-            per_episode = {}
-            for episode_name in episodes:
-                log = os.path.join(logdir, episode_name, 'log.gsl1.ds1.json')
-                output = os.path.join(episode_name)
-                evaluated = draw_logs_main_(filename=log, output=output)
 
-                stats = {}
-                for k, evr in evaluated.items():
-                    assert isinstance(evr, RuleEvaluationResult)
-                    for m, em in evr.metrics.items():
-                        assert isinstance(em, EvaluatedMetric)
+        assert len(episodes) > 0
+        per_episode = {}
+        for episode_name in episodes:
+            log = os.path.join(logdir, episode_name, 'log.gsl1.ds1.json')
+            output = os.path.join(episode_name)
+            evaluated = draw_logs_main_(filename=log, output=output)
 
-                        # kk = "/".join((k,) + m)
-                        # stats[kk] = em.total
-                        assert isinstance(m, tuple)
-                        if m:
-                            M = "/".join(m)
-                        else:
-                            M = k
-                        stats[M] = float(em.total)
-                per_episode[episode_name] = stats
+            stats = {}
+            for k, evr in evaluated.items():
+                assert isinstance(evr, RuleEvaluationResult)
+                for m, em in evr.metrics.items():
+                    assert isinstance(em, EvaluatedMetric)
 
-                fn_svg = os.path.join(output, 'drawing.svg')
-                fn_html = os.path.join(output, 'drawing.html')
-                for f in [fn_svg, fn_html]:
-                    cie.set_evaluation_file(f, f)
+                    # kk = "/".join((k,) + m)
+                    # stats[kk] = em.total
+                    assert isinstance(m, tuple)
+                    if m:
+                        M = "/".join(m)
+                    else:
+                        M = k
+                    stats[M] = float(em.total)
+            per_episode[episode_name] = stats
+
+            fn_svg = os.path.join(output, 'drawing.svg')
+            fn_html = os.path.join(output, 'drawing.html')
+            for f in [fn_svg, fn_html]:
+                cie.set_evaluation_file(f, f)
 
         cie.set_score('per-episodes', per_episode)
 
+        # noinspection PyUnboundLocalVariable
         for k in list(stats):
             values = [_[k] for _ in per_episode.values()]
             cie.set_score('%s_mean' % k, float(np.mean(values)))
