@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import shutil
 import traceback
 from dataclasses import dataclass
 from typing import Iterator, List
@@ -12,9 +13,10 @@ from aido_schemas import EpisodeStart, protocol_agent, SetMap, SpawnRobot, Step,
     SetRobotCommands, RobotPerformance, RobotState, SimulationState, Scenario, protocol_scenario_maker
 from aido_schemas.utils import TimeTracker
 from aido_schemas.utils_drawing import read_and_draw
+from aido_schemas.utils_video import make_video1
 from zuper_json.ipce import object_to_ipce
 from zuper_json.subcheck import can_be_used_as
-from zuper_nodes_wrapper.wrapper_outside import ComponentInterface
+from zuper_nodes_wrapper.wrapper_outside import ComponentInterface, MsgReceived
 
 logging.basicConfig()
 logger = logging.getLogger('launcher')
@@ -23,7 +25,7 @@ logger.setLevel(logging.DEBUG)
 
 #
 
-def main(log_dir):
+def main(log_dir, attempts):
     # first open all fifos
     agent_in = '/fifos/agent-in'
     agent_out = '/fifos/agent-out'
@@ -45,6 +47,7 @@ def main(log_dir):
 
     check_compatibility_between_agent_and_sim(agent_ci, sim_ci)
 
+    attempt_i = 0
     try:
         experiment_manager_parameters = env_as_yaml('experiment_manager_parameters')
 
@@ -74,11 +77,21 @@ def main(log_dir):
 
             logger.info('Starting episode %s' % episode_name)
 
-            dn = os.path.join(log_dir, episode_name)
+            dn_final = os.path.join(log_dir, episode_name)
+
+            if os.path.exists(dn_final):
+                shutil.rmtree(dn_final)
+
+            dn = os.path.join(attempts, episode_name + '.attempt%s' % attempt_i)
+            if os.path.exists(dn):
+                shutil.rmtree(dn)
+
             if not os.path.exists(dn):
                 os.makedirs(dn)
             fn = os.path.join(dn, 'log.gs2.cbor')
-            fw = open(fn, 'wb')
+
+            fn_tmp = fn +'.tmp'
+            fw = open(fn_tmp, 'wb')
 
             agent_ci.cc(fw)
             sim_ci.cc(fw)
@@ -92,25 +105,29 @@ def main(log_dir):
                                      max_steps_per_episode=steps_per_episodes)
                 logger.info('Finished episode %s' % episode_name)
 
-                if nsteps >= min_nsteps:
-                    logger.info('%d steps are enough' % nsteps)
-                    episodes.pop(0)
-
-                    output = os.path.join(dn, 'visualization')
-                    read_and_draw(fn, output)
-
-                else:
-                    logger.error('episode too short with %s steps' % nsteps)
-                    nfailures += 1
-
             except:
                 msg = 'Anomalous error from run_episode():\n%s' % traceback.format_exc()
                 logger.error(msg)
                 raise
             finally:
                 fw.close()
+                os.rename(fn_tmp, fn)
 
+            # output = os.path.join(dn, 'visualization')
+            read_and_draw(fn, dn)
 
+            if nsteps >= min_nsteps:
+                logger.info('%d steps are enough' % nsteps)
+                episodes.pop(0)
+
+                out_video = os.path.join(dn, 'camera.mp4')
+                make_video1(fn, out_video)
+
+                os.rename(dn, dn_final)
+            else:
+                logger.error('episode too short with %s steps' % nsteps)
+                nfailures += 1
+            attempt_i += 1
     except:
         msg = 'Anomalous error while running episodes:\n%s' % traceback.format_exc()
         logger.error(msg)
@@ -158,16 +175,8 @@ def run_episode(sim_ci,
     while steps < max_steps_per_episode:
         tt = TimeTracker(steps)
 
-        with tt.measure('sim_compute_sim_state'):
-            sim_ci.write('get_sim_state')
-            recv: MsgReceived[SimulationState] = sim_ci.read_one(expect_topic='sim_state')
-            sim_state: SimulationState = recv.data
-            if sim_state.done:
-                logger.info(f'Breaking because of simulator ({sim_state.done_code} - {sim_state.done_why}')
-                break
-
         # have this first, so we have something for t = 0
-        with tt.measure('sim_compute_state'):
+        with tt.measure('sim_compute_robot_state'):
             sim_ci.write('get_robot_state', robot_name)
             _recv: MsgReceived[RobotState] = sim_ci.read_one(expect_topic='robot_state')
 
@@ -175,17 +184,10 @@ def run_episode(sim_ci,
             sim_ci.write('get_robot_performance', robot_name)
             _recv: MsgReceived[RobotPerformance] = sim_ci.read_one(expect_topic='robot_performance')
 
-        with tt.measure('sim_physics'):
-            current_sim_time += DELTA
-            sim_ci.write('step', Step(current_sim_time))
 
         with tt.measure('sim_render'):
             sim_ci.write('get_robot_observations', robot_name)
             recv: MsgReceived[RobotObservations] = sim_ci.read_one(expect_topic='robot_observations')
-
-        # fn = '/logs/%d.jpg' % steps
-        # with open(fn, 'wb') as f:
-        #     f.write(recv.data.observations.camera.jpg_data)
 
         with tt.measure('agent_compute'):
             agent_ci.write('observations', recv.data.observations)
@@ -199,6 +201,20 @@ def run_episode(sim_ci,
         with tt.measure('set_robot_commands'):
             commands = SetRobotCommands(robot_name='ego', commands=r.data, t_effective=current_sim_time)
             sim_ci.write('set_robot_commands', commands)
+
+        with tt.measure('sim_compute_sim_state'):
+            sim_ci.write('get_sim_state')
+            recv: MsgReceived[SimulationState] = sim_ci.read_one(expect_topic='sim_state')
+            sim_state: SimulationState = recv.data
+            if sim_state.done:
+                logger.info(f'Breaking because of simulator ({sim_state.done_code} - {sim_state.done_why}')
+                break
+
+
+        with tt.measure('sim_physics'):
+            current_sim_time += DELTA
+            sim_ci.write('step', Step(current_sim_time))
+
 
         log_timing_info(tt, sim_ci)
 
@@ -283,43 +299,38 @@ def env_as_yaml(name):
         raise Exception(msg)
 
 
-# import duckietown_challenges as dc
-#
-#
-# class GymEvaluator(dc.ChallengeEvaluator):
-#     def prepare(self, cie: dc.ChallengeInterfaceEvaluator):
-#         cie.set_challenge_parameters({})
-#
-#     def score(self, cie: dc.ChallengeInterfaceEvaluator):
-#         logdir = '/logs'
-#         try:
-#             main(logdir)
-#         except:
-#             cr = ChallengeResults(status, message, {})
-#         else:
-#             cr = ChallengeResults(status, message, {})
-#         declare_challenge_results(root, cr)
-#
-#         cie.set_score('simulation-passed', 1)
-#
-#         cie.info('saving files')
-#         cie.set_evaluation_dir('episodes', logdir)
-#         cie.info('score() terminated gracefully.')
+import duckietown_challenges as dc
 
 
-#
-# if __name__ == '__main__':
-#     # noinspection PyBroadException
-#     try:
-#         main()
-#         logger.info('success')
-#         sys.exit(0)
-#     except SystemExit:
-#         raise
-#     except BaseException:
-#         logger.error('anomalous exit of experiment_manager:\n%s' % traceback.format_exc())
-#         sys.exit(2)
+class ExperimentManagerEvaluator(dc.ChallengeEvaluator):
+    def prepare(self, cie: dc.ChallengeInterfaceEvaluator):
+        cie.set_challenge_parameters({})
+
+        d = '/challenge-solution-output'
+        if not os.path.exists(d):
+            os.makedirs(d)
+        fn = '/challenge-solution-output/output-solution.yaml'
+        with open(fn, 'w') as f:
+            f.write('{}')
+
+    def score(self, cie: dc.ChallengeInterfaceEvaluator):
+        d = cie.get_tmp_dir()
+        d = '/challenge-solution-output'
+        logdir = os.path.join(d, 'episodes')
+        attempts = os.path.join(d, 'attempts')
+        if not os.path.exists(logdir):
+            os.makedirs(logdir)
+        if not os.path.exists(attempts):
+            os.makedirs(attempts)
+        try:
+            main(logdir, attempts)
+            cie.set_score('simulation-passed', 1)
+        finally:
+            cie.info('saving files')
+            cie.set_evaluation_dir('episodes', logdir)
+
+        cie.info('score() terminated gracefully.')
+
 
 if __name__ == '__main__':
-    # dc.wrap_evaluator(GymEvaluator())
-    main("/logs")
+    dc.wrap_evaluator(ExperimentManagerEvaluator())

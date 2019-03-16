@@ -4,3 +4,7 @@ simulation/log.pyc
 *.pyc
 *.bag
 logs
+.idea
+.registers
+out-comptests
+sq.db

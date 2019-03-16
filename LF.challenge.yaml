@@ -7,7 +7,7 @@ description: |
 
   This challenge is described in the detail [in the book](http://docs.duckietown.org/DT19/AIDO/out/index.html).
 
-protocol: aido1_remote3-v3
+protocol: aido2_db18_agent_1
 
 
 date-open: 2018-12-07
@@ -16,7 +16,7 @@ date-close: 2019-12-07
 roles: {}
 
 scoring:
-    scores:
+  scores:
 
     # performance
     - name: driven_lanedir_consec_median
@@ -38,8 +38,6 @@ scoring:
       order: higher-is-better
       discretization: 2.0
 
-
-    # naturality
     - name: deviation-center-line_median
       short: Lateral deviation
       description: |
@@ -66,44 +64,51 @@ steps:
     evaluation_parameters:
       services:
         evaluator:
-          image: _
           environment:
-            solution_parameters:
-              env: Duckietown-Lf-Lfv-Navv-Silent-v1
+            DISABLE_CONTRACTS: 1
+            AIDONODE_ENCODING: cbor
+            experiment_manager_parameters: |
+              episodes_per_scenario: 1
+              steps_per_episode: 14
+              min_nsteps: 1
+              seed: 42
+          build:
+            context: ./experiment_manager
 
-            launcher_parameters:
-              challenge: LF
-              episodes: 7
-              steps_per_episode: 500
-              include_map: true
+        scenario_maker:
+          environment:
+            DISABLE_CONTRACTS: 1
+            AIDONODE_ENCODING: cbor
+            AIDONODE_DATA_IN: /fifos/scenario_maker-in
+            AIDONODE_DATA_OUT: fifo:/fifos/scenario_maker-out
+            AIDONODE_CONFIG: |
+              maps:
+              - 4way
+              scenarios_per_map: 2
+          build:
+            context: ./scenario_maker
 
-              environment-constructor: Simulator
-
-              # passed to the environment
-              environment-parameters:
-                seed: 123 # random seed
-                map_name: loop_empty # loop_obstacles # loop_pedestrians
+        simulator:
+          build:
+            context: ./simulator_only
+          environment:
+            AIDONODE_DATA_IN: /fifos/simulator-in
+            AIDONODE_DATA_OUT: fifo:/fifos/simulator-out
+            AIDONODE_ENCODING: cbor
+            AIDONODE_CONFIG: |
+              env_constructor: Simulator
+              env_parameters:
                 max_steps: 500001 # we don't want the gym to reset itself
                 domain_rand: 0
                 camera_width: 640
                 camera_height: 480
-                accept_start_angle_deg: 6 # start close to straight
-                full_transparency: true
                 distortion: true
-              # passed to the agent in the "misc" field
-              agent-info:
-                challenge: LF
-          build:
-            context: ./simulation
         solution:
-            image: SUBMISSION_CONTAINER
-            environment:
-              AIDONODE_DATA_IN:
-              AIDONODE_DATA_OUT:
-              AIDONODE_META_IN:
-              AIDONODE_META_OUT:
-
-    features_required: {}
+          image: SUBMISSION_CONTAINER
+          environment:
+            AIDONODE_DATA_IN: /fifos/agent-in
+            AIDONODE_DATA_OUT: fifo:/fifos/agent-out
+            AIDONODE_ENCODING: cbor
 
   step2-scoring:
     title: Scoring step
@@ -113,49 +118,24 @@ steps:
     evaluation_parameters:
       services:
         scorer:
-          image: _
           build:
             context: ./scorer
 
-    features_required: {}
 
-  step3-videos:
-    title: Making videos
-    description: ""
-    timeout: 10
-    evaluation_parameters:
-      services:
-        videos:
-          image: _
-          build:
-            context: ./videos
 
-    features_required: {}
-
-  step4-viz:
-    title: Visualization
-    description: ""
-    timeout: 10
-    evaluation_parameters:
-      services:
-        visualization:
-          image: _
-          build:
-            context: ./visualization
-
-    features_required: {}
 
 transitions:
   - [START, success, step1-simulation]
   - [step1-simulation, success, step2-scoring]
   - [step1-simulation, failed, FAILED]
   - [step1-simulation, error, ERROR]
-  - [step2-scoring, success, step3-videos]
+  - [step2-scoring, success, SUCCESS]
+  #  - [step2-scoring, success, step3-videos]
   - [step2-scoring, failed, FAILED]
   - [step2-scoring, error, ERROR]
-  - [step3-videos, success, step4-viz]
-  - [step3-videos, failed, FAILED]
-  - [step3-videos, error, ERROR]
-  - [step4-viz, success, SUCCESS]
-  - [step4-viz, failed, FAILED]
-  - [step4-viz, error, ERROR]
+#  - [step3-videos, success, step4-viz]
+#  - [step3-videos, failed, FAILED]
+#  - [step3-videos, error, ERROR]
+#  - [step4-viz, success, SUCCESS]
+#  - [step4-viz, failed, FAILED]
+#  - [step4-viz, error, ERROR]

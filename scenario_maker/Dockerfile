@@ -1,6 +1,5 @@
-FROM python:3.7
 
-WORKDIR /project
+FROM duckietown/aido2-base-python3:v4
 
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt

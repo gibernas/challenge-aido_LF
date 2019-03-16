@@ -30,6 +30,8 @@ class MyRobotState(RobotState):
     state: MyRobotInfo
 
 
+
+
 @dataclass
 class GymDuckiebotSimulatorConfig:
     """

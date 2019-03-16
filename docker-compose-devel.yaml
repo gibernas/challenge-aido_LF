@@ -12,7 +12,7 @@ services:
     build:
       context: ./experiment_manager
     volumes: &volumes
-      - ./logs:/logs
+      - ./challenges-dir:/challenges
       - fifos:/fifos
       - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/aido-protocols/src:/project/src/aido-protocols/src:ro
       - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/simulators/duckietown-world/src:/project/src/duckietown-world/src:ro
