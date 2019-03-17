@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from dataclasses import dataclass
+from typing import Iterator
 
 import numpy as np
 import yaml
@@ -10,8 +11,9 @@ from aido_schemas import wrap_direct, Context, PWMCommands, JPGImage, Duckiebot1
     RobotInterfaceDescription, RobotState, RobotPerformance, Metric, PerformanceMetrics, SimulationState
 from aido_schemas.schemas import protocol_simulator_duckiebot1
 from gym_duckietown.envs import DuckietownEnv
-from gym_duckietown.simulator import Simulator, NotInLane
-
+from gym_duckietown.objects import DuckiebotObj
+from gym_duckietown.simulator import Simulator, NotInLane, SAFETY_RAD_MULT, WHEEL_DIST, ROBOT_WIDTH, ROBOT_LENGTH, \
+    ObjMesh
 from zuper_nodes import timestamp_from_seconds, TimeSpec, TimingInfo
 
 
@@ -30,18 +32,21 @@ class MyRobotState(RobotState):
     state: MyRobotInfo
 
 
-
-
 @dataclass
 class GymDuckiebotSimulatorConfig:
     """
         env_constructor: either "Simulator" or "DuckietownEnv"
 
+        env_parameters: parameters for the constructor
 
+        camera_frame_rate: frame rate for the camera. No observations
+        will be generated quicker than this.
 
     """
     env_constructor: str = 'Simulator'
     env_parameters: dict = None
+    camera_dt: float = 1 / 15.0
+    minimum_physics_dt: float = 1 / 30.0
 
 
 class GymDuckiebotSimulator:
@@ -65,17 +70,16 @@ class GymDuckiebotSimulator:
 
         klass = name2class[environment_class]
         self.env = klass(**env_parameters)
-        self.robot_name = None
-        self.spawn_pose = None
 
     def on_received_seed(self, context: Context, data: int):
         context.info(f'seed({data})')
 
     def on_received_clear(self, context: Context):
-        context.info(f'clear()')
+        self.robot_name = None
+        self.spawn_pose = None
+        self.npcs = {}
 
     def on_received_set_map(self, context: Context, data: SetMap):
-        context.info(f'set_map({data})')
         yaml_str: str = data.map_data
 
         map_data = yaml.load(yaml_str)
@@ -83,8 +87,30 @@ class GymDuckiebotSimulator:
         self.env._interpret_map(map_data)
 
     def on_received_spawn_robot(self, data: SpawnRobot):
-        self.spawn_configuration = data.configuration
-        self.robot_name = data.robot_name
+        if data.playable:
+            self.spawn_configuration = data.configuration
+            self.robot_name = data.robot_name
+        else:
+            q = data.configuration.pose
+            pos, angle = self.env.weird_from_cartesian(q)
+
+            mesh =  ObjMesh.get('duckiebot')
+
+            obj_desc = {'kind': 'duckiebot',
+                        'mesh': mesh,
+                        'pos':pos,
+                        'rotate': np.rad2deg(angle),
+                        'height': 0.12,
+                        'y_rot': 0,
+                        'static': False,
+                        'optional': False}
+
+            obj_desc['scale'] = obj_desc['height'] / mesh.max_coords[1]
+
+            obj = DuckiebotObj(obj_desc, False, SAFETY_RAD_MULT, WHEEL_DIST,
+                               ROBOT_WIDTH, ROBOT_LENGTH)
+
+            self.npcs[data.robot_name] = obj
 
     def _set_pose(self, context):
         # TODO: check location
@@ -162,11 +188,18 @@ class GymDuckiebotSimulator:
             raise Exception(msg) from e
 
         self._set_pose(context)
+        for robot_name, obj in self.npcs.items():
+            self.env.objects.append(obj)
+
+        self.last_observations_time = -100.0
+        self.last_observations = None
+
+        self.update_observations()
 
     def on_received_step(self, context: Context, data: Step):
         delta_time = data.until - self.current_time
         if delta_time > 0:
-            self.env.update_physics(self.last_action, delta_time=delta_time)
+            self.update_physics_and_observations(self.last_action, until=data.until, context=context)
         else:
             context.warning(f'Already at time {data.until}')
 
@@ -174,39 +207,72 @@ class GymDuckiebotSimulator:
         self.reward_cumulative += d.reward * delta_time
         self.current_time = data.until
 
+    def update_physics_and_observations(self, last_action, until, context: Context):
+        # we are at self.current_time and need to update until "until"
+        dt = self.config.camera_dt
+        snapshots = list(get_snapshots(self.last_observations_time, self.current_time, until, dt))
+
+        steps = snapshots + [until]
+        context.info(f'current time: {self.current_time}')
+        context.info(f'       until: {until}')
+        context.info(f'    last_obs: {self.last_observations_time}')
+        context.info(f'   snapshots: {snapshots}')
+
+        for t1 in steps:
+            delta_time = t1 - self.current_time
+            self.env.update_physics(last_action, delta_time=delta_time)
+            self.current_time = t1
+
+            if self.current_time - self.last_observations_time >= self.config.camera_dt:
+                self.update_observations()
+
     def on_received_set_robot_commands(self, data: DB18SetRobotCommands):
         wheels = data.commands.wheels
         action = np.array([wheels.motor_left, wheels.motor_right])
         action = np.clip(action, -1.0, +1.0)
         self.last_action = action
 
-    def on_received_get_robot_observations(self, context: Context):
+    def update_observations(self):
         obs = self.env.render_obs()
-
         jpg_data = rgb2jpg(obs)
         camera = JPGImage(jpg_data)
         obs = Duckiebot1Observations(camera)
-        ro = DB18RobotObservations(self.robot_name, self.current_time, obs)
+        self.ro = DB18RobotObservations(self.robot_name, self.current_time, obs)
+        self.last_observations_time = self.current_time
+
+    def on_received_get_robot_observations(self, context: Context):
         # timing information
-        t = timestamp_from_seconds(self.current_time)
+        t = timestamp_from_seconds(self.last_observations_time)
         ts = TimeSpec(time=t, frame=self.episode_name, clock=context.get_hostname())
         timing = TimingInfo(acquired={'image': ts})
-        context.write('robot_observations', ro, with_schema=True, timing=timing)
+        context.write('robot_observations', self.ro, with_schema=True, timing=timing)
 
-    def on_received_get_robot_state(self, context):
+    def on_received_get_robot_state(self, context, data:RobotName):
         env = self.env
         speed = env.speed
         omega = 0.0  # XXX
-
-        q = env.cartesian_from_weird(env.cur_pos, env.cur_angle)
-        v = geometry.se2_from_linear_angular([speed, 0], omega)
-        state = MyRobotInfo(pose=q,
-                            velocity=v,
-                            last_action=env.last_action,
-                            wheels_velocities=env.wheelVels)
-        rs = MyRobotState(robot_name=self.robot_name,
-                          t_effective=self.current_time,
-                          state=state)
+        if data == self.robot_name:
+            q = env.cartesian_from_weird(env.cur_pos, env.cur_angle)
+            v = geometry.se2_from_linear_angular([speed, 0], omega)
+            state = MyRobotInfo(pose=q,
+                                velocity=v,
+                                last_action=env.last_action,
+                                wheels_velocities=env.wheelVels)
+            rs = MyRobotState(robot_name=data,
+                              t_effective=self.current_time,
+                              state=state)
+        else:
+            obj: DuckiebotObj = self.npcs[data]
+            q = env.cartesian_from_weird(obj.pos, obj.angle)
+            # FIXME: how to get velocity?
+            v = geometry.se2_from_linear_angular([0, 0], 0)
+            state = MyRobotInfo(pose=q,
+                                velocity=v,
+                                last_action=np.array([0,0]),
+                                wheels_velocities=np.array([0,0]))
+            rs = MyRobotState(robot_name=data,
+                              t_effective=self.current_time,
+                              state=state)
         # timing information
         t = timestamp_from_seconds(self.current_time)
         ts = TimeSpec(time=t, frame=self.episode_name, clock=context.get_hostname())
@@ -223,6 +289,14 @@ class GymDuckiebotSimulator:
         done_code = d.done_code
         sim_state = SimulationState(done, done_why, done_code)
         context.write('sim_state', sim_state)
+
+
+def get_snapshots(last_obs_time, current_time, until, dt) -> Iterator[float]:
+    t = last_obs_time + dt
+    while t < until:
+        if t > current_time:
+            yield t
+        t += dt
 
 
 # noinspection PyUnresolvedReferences

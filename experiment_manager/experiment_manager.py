@@ -5,8 +5,9 @@ import os
 import shutil
 import traceback
 from dataclasses import dataclass
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
+import numpy as np
 import yaml
 
 from aido_schemas import EpisodeStart, protocol_agent, SetMap, SpawnRobot, Step, protocol_simulator, RobotObservations, \
@@ -14,7 +15,9 @@ from aido_schemas import EpisodeStart, protocol_agent, SetMap, SpawnRobot, Step,
 from aido_schemas.utils import TimeTracker
 from aido_schemas.utils_drawing import read_and_draw
 from aido_schemas.utils_video import make_video1
-from zuper_json.ipce import object_to_ipce
+from duckietown_world.rules import RuleEvaluationResult
+from duckietown_world.rules.rule import EvaluatedMetric
+from zuper_json.ipce import object_to_ipce, ipce_to_object
 from zuper_json.subcheck import can_be_used_as
 from zuper_nodes_wrapper.wrapper_outside import ComponentInterface, MsgReceived
 
@@ -23,13 +26,22 @@ logger = logging.getLogger('launcher')
 logger.setLevel(logging.DEBUG)
 
 
-#
+@dataclass
+class MyConfig:
+    episode_length_s: float
+    min_episode_length_s: float
+    seed: int
+    physics_dt: float
+    episodes_per_scenario: int
+    max_failures: int
 
-def main(log_dir, attempts):
+
+def main(cie, log_dir, attempts):
     # first open all fifos
     agent_in = '/fifos/agent-in'
     agent_out = '/fifos/agent-out'
     agent_ci = ComponentInterface(agent_in, agent_out, expect_protocol=protocol_agent, nickname="agent")
+    agents = [agent_ci]
 
     sim_in = '/fifos/simulator-in'
     sim_out = '/fifos/simulator-out'
@@ -48,27 +60,23 @@ def main(log_dir, attempts):
     check_compatibility_between_agent_and_sim(agent_ci, sim_ci)
 
     attempt_i = 0
+    per_episode = {}
+    stats = {}
     try:
-        experiment_manager_parameters = env_as_yaml('experiment_manager_parameters')
+        config_ = env_as_yaml('experiment_manager_parameters')
+        logger.info('parameters:\n\n%s' % config_)
+        config: MyConfig = ipce_to_object(config_, {}, expect_type=MyConfig)
 
-        logger.info('parameters:\n\n%s' % json.dumps(experiment_manager_parameters, indent=4))
-
-        steps_per_episodes = experiment_manager_parameters['steps_per_episode']
-        min_nsteps = experiment_manager_parameters['min_nsteps']
-        seed = experiment_manager_parameters.get('seed', 0)
-        episodes_per_scenario = experiment_manager_parameters.get('episodes_per_scenario', 1)
-
-        MAX_FAILURES = 5
         nfailures = 0
 
-        sim_ci.write('seed', seed)
-        agent_ci.write('seed', seed)
+        sim_ci.write('seed', config.seed)
+        agent_ci.write('seed', config.seed)
 
-        episodes = get_episodes(sm_ci, episodes_per_scenario=episodes_per_scenario, seed=seed)
+        episodes = get_episodes(sm_ci, episodes_per_scenario=config.episodes_per_scenario, seed=config.seed)
 
         while episodes:
 
-            if nfailures >= MAX_FAILURES:
+            if nfailures >= config.max_failures:
                 msg = 'Too many failures: %s' % nfailures
                 raise Exception(msg)  # XXX
 
@@ -90,19 +98,25 @@ def main(log_dir, attempts):
                 os.makedirs(dn)
             fn = os.path.join(dn, 'log.gs2.cbor')
 
-            fn_tmp = fn +'.tmp'
+            fn_tmp = fn + '.tmp'
             fw = open(fn_tmp, 'wb')
 
             agent_ci.cc(fw)
             sim_ci.cc(fw)
 
             logger.info('Now running episode')
+
+            num_playable = len([_ for _ in episode_spec.scenario.robots.values() if _.playable])
+            if num_playable != len(agents):
+                msg = f'The scenario requires {num_playable} robots, but I only know {len(agents)} agents.'
+                raise Exception(msg)  # XXX
             try:
-                nsteps = run_episode(sim_ci,
-                                     agent_ci,
-                                     episode_name=episode_name,
-                                     scenario=episode_spec.scenario,
-                                     max_steps_per_episode=steps_per_episodes)
+                length_s = run_episode(sim_ci,
+                                       agents,
+                                       episode_name=episode_name,
+                                       scenario=episode_spec.scenario,
+                                       episode_length_s=config.episode_length_s,
+                                       physics_dt=config.physics_dt)
                 logger.info('Finished episode %s' % episode_name)
 
             except:
@@ -114,10 +128,24 @@ def main(log_dir, attempts):
                 os.rename(fn_tmp, fn)
 
             # output = os.path.join(dn, 'visualization')
-            read_and_draw(fn, dn)
+            evaluated = read_and_draw(fn, dn)
 
-            if nsteps >= min_nsteps:
-                logger.info('%d steps are enough' % nsteps)
+            stats = {}
+            for k, evr in evaluated.items():
+                assert isinstance(evr, RuleEvaluationResult)
+                for m, em in evr.metrics.items():
+                    assert isinstance(em, EvaluatedMetric)
+
+                    assert isinstance(m, tuple)
+                    if m:
+                        M = "/".join(m)
+                    else:
+                        M = k
+                    stats[M] = float(em.total)
+            per_episode[episode_name] = stats
+
+            if length_s >= config.min_episode_length_s:
+                logger.info('%1.f s are enough' % length_s)
                 episodes.pop(0)
 
                 out_video = os.path.join(dn, 'camera.mp4')
@@ -125,28 +153,37 @@ def main(log_dir, attempts):
 
                 os.rename(dn, dn_final)
             else:
-                logger.error('episode too short with %s steps' % nsteps)
+                logger.error('episode too short with %1.f s < %.1f s' % (length_s, config.min_episode_length_s))
                 nfailures += 1
             attempt_i += 1
-    except:
+    except dc.InvalidSubmission:
+        raise
+    except BaseException as e:
         msg = 'Anomalous error while running episodes:\n%s' % traceback.format_exc()
         logger.error(msg)
-        raise
+        raise dc.InvalidEvaluator(msg) from e
 
     finally:
         agent_ci.close()
         sim_ci.close()
         logger.info('Simulation done.')
 
-    logger.info('Clean exit.')
+    cie.set_score('per-episodes', per_episode)
+
+    for k in list(stats):
+        values = [_[k] for _ in per_episode.values()]
+        cie.set_score('%s_mean' % k, float(np.mean(values)))
+        cie.set_score('%s_median' % k, float(np.median(values)))
+        cie.set_score('%s_min' % k, float(np.min(values)))
+        cie.set_score('%s_max' % k, float(np.max(values)))
 
 
 def run_episode(sim_ci,
-                agent_ci,
-                episode_name, scenario: Scenario, max_steps_per_episode):
+                agents,
+                physics_dt: float,
+                episode_name, scenario: Scenario,
+                episode_length_s: float) -> float:
     ''' returns number of steps '''
-
-    robot_name = 'ego'
 
     # clear simulation
     sim_ci.write('clear')
@@ -155,52 +192,66 @@ def run_episode(sim_ci,
 
     # spawn robot
     for robot_name, robot_conf in scenario.robots.items():
-        sim_ci.write('spawn_robot', SpawnRobot(robot_name, robot_conf.configuration))
+        sim_ci.write('spawn_robot', SpawnRobot(robot_name=robot_name, configuration=robot_conf.configuration,
+                                               playable=robot_conf.playable))
 
     # start episode
     sim_ci.write('episode_start', EpisodeStart(episode_name))
-    agent_ci.write('episode_start', EpisodeStart(episode_name))
+
+    for agent in agents:
+        agent.write('episode_start', EpisodeStart(episode_name))
 
     current_sim_time = 0.0
 
     # for now, fixed timesteps
-    DELTA = 0.1
 
     steps = 0
 
-    # Get an observation also at t=0
-    # sim_ci.write('get_robot_observations', robot_name)
-    # recv: MsgReceived[RobotObservations] = sim_ci.read_one(expect_topic='robot_observations')
+    playable_robots = [_ for _ in scenario.robots if scenario.robots[_].playable]
+    not_playable_robots = [_ for _ in scenario.robots if not scenario.robots[_].playable]
+    playable_robots2agent = {_: v for _, v in zip(playable_robots, agents)}
 
-    while steps < max_steps_per_episode:
+
+    while True:
+        if current_sim_time >= episode_length_s:
+            logger.info('Reached %1.f seconds. Finishing. ' % episode_length_s)
+            break
+
         tt = TimeTracker(steps)
 
-        # have this first, so we have something for t = 0
-        with tt.measure('sim_compute_robot_state'):
-            sim_ci.write('get_robot_state', robot_name)
-            _recv: MsgReceived[RobotState] = sim_ci.read_one(expect_topic='robot_state')
+        for robot_name in playable_robots:
+            agent = playable_robots2agent[robot_name]
 
-        with tt.measure('sim_compute_performance'):
-            sim_ci.write('get_robot_performance', robot_name)
-            _recv: MsgReceived[RobotPerformance] = sim_ci.read_one(expect_topic='robot_performance')
+            # have this first, so we have something for t = 0
+            with tt.measure(f'sim_compute_robot_state-{robot_name}'):
+                sim_ci.write('get_robot_state', robot_name)
+                _recv: MsgReceived[RobotState] = sim_ci.read_one(expect_topic='robot_state')
 
+            with tt.measure(f'sim_compute_performance-{robot_name}'):
+                sim_ci.write('get_robot_performance', robot_name)
+                _recv: MsgReceived[RobotPerformance] = sim_ci.read_one(expect_topic='robot_performance')
 
-        with tt.measure('sim_render'):
-            sim_ci.write('get_robot_observations', robot_name)
-            recv: MsgReceived[RobotObservations] = sim_ci.read_one(expect_topic='robot_observations')
+            with tt.measure(f'sim_render-{robot_name}'):
+                sim_ci.write('get_robot_observations', robot_name)
+                recv: MsgReceived[RobotObservations] = sim_ci.read_one(expect_topic='robot_observations')
 
-        with tt.measure('agent_compute'):
-            agent_ci.write('observations', recv.data.observations)
+            with tt.measure(f'agent_compute-{robot_name}'):
+                try:
+                    agent.write('observations', recv.data.observations)
+                    agent.write('get_commands')
+                    r: MsgReceived = agent.read_one(expect_topic='commands')
+                except BaseException as e:
+                    msg = 'Trouble with communication to the agent.'
+                    raise dc.InvalidSubmission(msg) from e
 
-            agent_ci.write('get_commands')
-            try:
-                r: MsgReceived = agent_ci.read_one(expect_topic='commands')
-            except StopIteration:
-                msg = 'Agent finished on its own.'
-                raise Exception(msg)  # XXX
-        with tt.measure('set_robot_commands'):
-            commands = SetRobotCommands(robot_name='ego', commands=r.data, t_effective=current_sim_time)
-            sim_ci.write('set_robot_commands', commands)
+            with tt.measure('set_robot_commands'):
+                commands = SetRobotCommands(robot_name=robot_name, commands=r.data, t_effective=current_sim_time)
+                sim_ci.write('set_robot_commands', commands)
+
+        for robot_name in not_playable_robots:
+            with tt.measure(f'sim_compute_robot_state-{robot_name}'):
+                sim_ci.write('get_robot_state', robot_name)
+                _recv: MsgReceived[RobotState] = sim_ci.read_one(expect_topic='robot_state')
 
         with tt.measure('sim_compute_sim_state'):
             sim_ci.write('get_sim_state')
@@ -210,20 +261,13 @@ def run_episode(sim_ci,
                 logger.info(f'Breaking because of simulator ({sim_state.done_code} - {sim_state.done_why}')
                 break
 
-
         with tt.measure('sim_physics'):
-            current_sim_time += DELTA
+            current_sim_time += physics_dt
             sim_ci.write('step', Step(current_sim_time))
-
 
         log_timing_info(tt, sim_ci)
 
-        steps += 1
-
-    else:
-        logger.info('Breaking because steps = %s' % max_steps_per_episode)
-
-    return steps
+    return current_sim_time
 
 
 def log_timing_info(tt, sim_ci):
@@ -303,19 +347,19 @@ import duckietown_challenges as dc
 
 
 class ExperimentManagerEvaluator(dc.ChallengeEvaluator):
-    def prepare(self, cie: dc.ChallengeInterfaceEvaluator):
+    def prepare(self, cie: dc.ChallengeInterfaceEvaluatorConcrete):
         cie.set_challenge_parameters({})
 
-        d = '/challenge-solution-output'
+        d = os.path.join(cie.root, 'challenge-solution-output')
         if not os.path.exists(d):
             os.makedirs(d)
-        fn = '/challenge-solution-output/output-solution.yaml'
+        fn = os.path.join(d, 'output-solution.yaml')
         with open(fn, 'w') as f:
             f.write('{}')
+        cie.info(f'Faked {fn}')
 
     def score(self, cie: dc.ChallengeInterfaceEvaluator):
         d = cie.get_tmp_dir()
-        d = '/challenge-solution-output'
         logdir = os.path.join(d, 'episodes')
         attempts = os.path.join(d, 'attempts')
         if not os.path.exists(logdir):
@@ -323,7 +367,7 @@ class ExperimentManagerEvaluator(dc.ChallengeEvaluator):
         if not os.path.exists(attempts):
             os.makedirs(attempts)
         try:
-            main(logdir, attempts)
+            main(cie, logdir, attempts)
             cie.set_score('simulation-passed', 1)
         finally:
             cie.info('saving files')

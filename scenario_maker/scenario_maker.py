@@ -24,14 +24,19 @@ class MyScenario(Scenario):
 class MyConfig:
     maps: Tuple[str] = ('4way',)
     scenarios_per_map: int = 2
+    robots_npcs: int = 3
+    robots_pcs: int = 1
+    theta_tol_deg: float = 30.0
+    dist_tol_m: float = 0.3
+    min_dist: float = 0.5
+    only_straight: bool = True
 
 
 @dataclass
 class MyState:
     scenarios_to_go: List[MyScenario]
 
-# scenario_maker_1      | 08:02:04|SimScenarioMaker|scenario_maker.py:58|_create_scenarios(): 63fcec6e268b:SimScenarioMaker: sampled pose: Pose(Rot(0.0deg),[0.7019999 0.1638   ])
-# scenario_maker_1      | 08:02:04|SimScenarioMaker|scenario_maker.py:58|_create_scenarios(): 63fcec6e268b:SimScenarioMaker: sampled pose: Pose(Rot(-0.0deg),[1.87199986 2.50379992])
+
 class SimScenarioMaker:
     config: MyConfig = MyConfig()
     state: MyState = MyState([])
@@ -52,17 +57,37 @@ class SimScenarioMaker:
 
             for i in range(self.config.scenarios_per_map):
                 scenario_name = f'{map_name}-{i}'
+
+                nrobots = self.config.robots_npcs + self.config.robots_pcs
+                poses = sample_many_good_starting_poses(po, nrobots,
+                                                        only_straight=self.config.only_straight,
+                                                        min_dist=self.config.min_dist)
+
+                poses_pcs = poses[:self.config.robots_pcs]
+                poses_npcs = poses[self.config.robots_pcs:]
+
                 robots = {}
-                pose = sample_good_starting_pose(po, only_straight=True)
+                for i in range(self.config.robots_pcs):
+                    pose = poses_pcs[i]
+                    vel = geometry.se2_from_linear_angular([0, 0], 0)
 
-                # t, a = geometry.translation_angle_from_SE2(pose)
-                context.info(f'sampled pose: {geometry.SE2.friendly(pose)}')
+                    robot_name = 'ego' if i == 0 else "player%d" % i
+                    configuration = RobotConfiguration(pose=pose, velocity=vel)
 
-                po.set_object('db18-4', dw.DB18(), ground_truth=dw.SE2Transform.from_SE2(pose))
+                    robots[robot_name] = ScenarioRobotSpec(description='Playable robot',
+                                                            playable=True,
+                                                            configuration=configuration)
 
-                vel = geometry.se2_from_linear_angular([0, 0], 0)
-                configuration = RobotConfiguration(pose, vel)
-                robots['ego'] = ScenarioRobotSpec(description='Ego robot', configuration=configuration)
+                for i in range(self.config.robots_npcs):
+                    pose = poses_npcs[i]
+                    vel = geometry.se2_from_linear_angular([0, 0], 0)
+
+                    robot_name = "npc%d" % i
+                    configuration = RobotConfiguration(pose=pose, velocity=vel)
+
+                    robots[robot_name] = ScenarioRobotSpec(description='NPC robot',
+                                                           playable=False,
+                                                           configuration=configuration)
 
                 ms = MyScenario(scenario_name=scenario_name, environment=yaml_str, robots=robots)
                 self.state.scenarios_to_go.append(ms)
@@ -83,6 +108,30 @@ class SimScenarioMaker:
 
     def finish(self, context: Context):
         pass
+
+
+def sample_many_good_starting_poses(po: dw.PlacedObject, nrobots: int, only_straight: bool, min_dist: float) -> List[
+    np.ndarray]:
+    poses = []
+
+    def far_enough(pose):
+        for p in poses:
+            if distance_poses(p, pose) < min_dist:
+                return False
+        return True
+
+    while len(poses) < nrobots:
+        pose = sample_good_starting_pose(po, only_straight=only_straight)
+        if far_enough(pose):
+            poses.append(pose)
+    return poses
+
+
+def distance_poses(q1, q2):
+    SE2 = geometry.SE2
+    d = SE2.multiply(SE2.inverse(q1), q2)
+    t, _a = geometry.translation_angle_from_SE2(d)
+    return np.linalg.norm(t)
 
 
 def main():

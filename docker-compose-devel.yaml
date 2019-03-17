@@ -6,9 +6,11 @@ services:
       AIDONODE_ENCODING: cbor
       experiment_manager_parameters: |
         episodes_per_scenario: 1
-        steps_per_episode: 14
-        min_nsteps: 1
+        episode_length_s: 5.0
+        min_episode_length_s: 1.0
         seed: 42
+        physics_dt: 0.05
+        max_failures: 2
     build:
       context: ./experiment_manager
     volumes: &volumes
@@ -19,8 +21,8 @@ services:
       - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/zuper_nodes/src:/project/src/zuper-nodes/src:ro
       - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/zuper_json/src:/project/src/zuper-utils/src:ro
       - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/simulators/gym-duckietown:/gym-duckietown:ro
-#      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/challenges/duckietown-challenges/src:/project/src/duckietown-challenges/src:ro
-      #      - ./experiment_manager:/project
+      - /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/challenges/duckietown-challenges/src:/project/src/duckietown-challenges/src:ro
+
   scenario_maker:
     environment:
       DISABLE_CONTRACTS: 1
@@ -34,7 +36,6 @@ services:
     build:
       context: ./scenario_maker
     volumes: *volumes
-      #      - ./experiment_manager:/project
   simulator:
     build:
       context: ./simulator_only
@@ -53,12 +54,12 @@ services:
     volumes: *volumes
 
   solution:
-    image: duckietown/aidonode-random_agent:v4
+    build:
+      context: ./minimal_agent
     environment:
       AIDONODE_DATA_IN: /fifos/agent-in
       AIDONODE_DATA_OUT: fifo:/fifos/agent-out
       AIDONODE_ENCODING: cbor
     volumes: *volumes
-      #- /data/work/vmware-michela-shared/DT/dt-env/dt-env-developer/src/aido-protocols/minimal-nodes-stubs/random_agent:/project:ro
 volumes:
   fifos:

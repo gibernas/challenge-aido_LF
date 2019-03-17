@@ -1,7 +1,7 @@
-challenge: aido2_LF_r1-v3
+challenge: aido2_LF_r2-v4
 
 title: "LF - Lane following "
-tags: [aido2, LF, v3]
+tags: [aido2, LF, v4]
 description: |
   Lane following challenge.
 
@@ -69,9 +69,11 @@ steps:
             AIDONODE_ENCODING: cbor
             experiment_manager_parameters: |
               episodes_per_scenario: 1
-              steps_per_episode: 14
-              min_nsteps: 1
+              episode_length_s: 5.0
+              min_episode_length_s: 1.0
               seed: 42
+              physics_dt: 0.05
+              max_failures: 2
           build:
             context: ./experiment_manager
 
@@ -103,6 +105,7 @@ steps:
                 camera_width: 640
                 camera_height: 480
                 distortion: true
+
         solution:
           image: SUBMISSION_CONTAINER
           environment:
@@ -110,29 +113,29 @@ steps:
             AIDONODE_DATA_OUT: fifo:/fifos/agent-out
             AIDONODE_ENCODING: cbor
 
-  step2-scoring:
-    title: Scoring step
-    description: ""
-
-    timeout: 10
-    evaluation_parameters:
-      services:
-        scorer:
-          build:
-            context: ./scorer
+#  step2-scoring:
+#    title: Scoring step
+#    description: ""
+#
+#    timeout: 10
+#    evaluation_parameters:
+#      services:
+#        scorer:
+#          build:
+#            context: ./scorer
 
 
 
 
 transitions:
   - [START, success, step1-simulation]
-  - [step1-simulation, success, step2-scoring]
+  - [step1-simulation, success, SUCCESS]
   - [step1-simulation, failed, FAILED]
   - [step1-simulation, error, ERROR]
-  - [step2-scoring, success, SUCCESS]
+#  - [step2-scoring, success, SUCCESS]
   #  - [step2-scoring, success, step3-videos]
-  - [step2-scoring, failed, FAILED]
-  - [step2-scoring, error, ERROR]
+#  - [step2-scoring, failed, FAILED]
+#  - [step2-scoring, error, ERROR]
 #  - [step3-videos, success, step4-viz]
 #  - [step3-videos, failed, FAILED]
 #  - [step3-videos, error, ERROR]
