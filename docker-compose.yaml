@@ -16,12 +16,6 @@ services:
     volumes: &volumes
       - ./challenges-dir:/challenges
       - fifos:/fifos
-      - ${DT_ENV_DEVELOPER}/src/aido-protocols/src:/project/src/aido-protocols/src:ro
-      - ${DT_ENV_DEVELOPER}/src/duckietown-world/src:/project/src/duckietown-world/src:ro
-      - ${DT_ENV_DEVELOPER}/src/gym-duckietown:/gym-duckietown:ro
-      - ${DT_ENV_DEVELOPER}/src/duckietown-challenges/src:/project/src/duckietown-challenges/src:ro
-#      - ${dt-env-developer}/src/zuper_nodes/src:/project/src/zuper-nodes/src:ro
-#      - ${dt-env-developer}/src/zuper_json/src:/project/src/zuper-utils/src:ro
 
   scenario_maker:
     environment:

@@ -23,8 +23,8 @@ class MyScenario(Scenario):
 @dataclass
 class MyConfig:
     maps: Tuple[str] = ('4way',)
-    scenarios_per_map: int = 2
-    robots_npcs: int = 3
+    scenarios_per_map: int = 1
+    robots_npcs: int = 0
     robots_pcs: int = 1
     theta_tol_deg: float = 30.0
     dist_tol_m: float = 0.3

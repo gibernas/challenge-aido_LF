@@ -18,3 +18,8 @@ test-data1-direct:
 test-data1-docker:
 	docker run -i $(tag) < test_data/in1.json > test_data/out1.json
 
+
+submit:
+	dts challenges submit
+	dts challenges submit --challenge aido2_LFV_r1-v4
+

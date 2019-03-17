@@ -5,10 +5,7 @@ tags: [aido2, LF, v4]
 description: |
   Lane following challenge.
 
-  This challenge is described in the detail [in the book](http://docs.duckietown.org/DT19/AIDO/out/index.html).
-
 protocol: aido2_db18_agent_1
-
 
 date-open: 2018-12-07
 date-close: 2019-12-07
@@ -18,7 +15,6 @@ roles: {}
 scoring:
   scores:
 
-    # performance
     - name: driven_lanedir_consec_median
       short: Traveled distance
       description: |
@@ -69,7 +65,7 @@ steps:
             AIDONODE_ENCODING: cbor
             experiment_manager_parameters: |
               episodes_per_scenario: 1
-              episode_length_s: 5.0
+              episode_length_s: 15.0
               min_episode_length_s: 1.0
               seed: 42
               physics_dt: 0.05
@@ -86,13 +82,16 @@ steps:
             AIDONODE_CONFIG: |
               maps:
               - 4way
+              - small_loop
+              - udem1
               scenarios_per_map: 2
+              robots_npcs: 0
           build:
             context: ./scenario_maker
 
         simulator:
           build:
-            context: ./simulator_only
+            context: ./simulator
           environment:
             AIDONODE_DATA_IN: /fifos/simulator-in
             AIDONODE_DATA_OUT: fifo:/fifos/simulator-out
@@ -113,17 +112,6 @@ steps:
             AIDONODE_DATA_OUT: fifo:/fifos/agent-out
             AIDONODE_ENCODING: cbor
 
-#  step2-scoring:
-#    title: Scoring step
-#    description: ""
-#
-#    timeout: 10
-#    evaluation_parameters:
-#      services:
-#        scorer:
-#          build:
-#            context: ./scorer
-
 
 
 
@@ -132,13 +120,3 @@ transitions:
   - [step1-simulation, success, SUCCESS]
   - [step1-simulation, failed, FAILED]
   - [step1-simulation, error, ERROR]
-#  - [step2-scoring, success, SUCCESS]
-  #  - [step2-scoring, success, step3-videos]
-#  - [step2-scoring, failed, FAILED]
-#  - [step2-scoring, error, ERROR]
-#  - [step3-videos, success, step4-viz]
-#  - [step3-videos, failed, FAILED]
-#  - [step3-videos, error, ERROR]
-#  - [step4-viz, success, SUCCESS]
-#  - [step4-viz, failed, FAILED]
-#  - [step4-viz, error, ERROR]
