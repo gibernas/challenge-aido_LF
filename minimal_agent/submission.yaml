@@ -1,0 +1,9 @@
+# challenge name
+challenge: aido2_LF_r2-v4
+# conventions + format
+protocol: aido2_db18_agent_1
+# any user label - displayed in "challenges list"
+user-label: Solution template
+# any JSON payload
+user-payload: {}
+
