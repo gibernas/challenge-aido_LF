@@ -5,4 +5,6 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
+
+ENV DISABLE_CONTRACTS=1
 ENTRYPOINT ["python3", "minimal_agent.py"]

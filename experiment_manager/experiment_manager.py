@@ -3,9 +3,12 @@ import json
 import logging
 import os
 import shutil
+import time
 import traceback
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Iterator, List, Optional
+from threading import Thread
+from typing import *
 
 import numpy as np
 import yaml
@@ -65,7 +68,7 @@ def main(cie, log_dir, attempts):
     try:
         config_ = env_as_yaml('experiment_manager_parameters')
         logger.info('parameters:\n\n%s' % config_)
-        config: MyConfig = ipce_to_object(config_, {}, expect_type=MyConfig)
+        config = cast(MyConfig, ipce_to_object(config_, {}, expect_type=MyConfig))
 
         nfailures = 0
 
@@ -128,7 +131,12 @@ def main(cie, log_dir, attempts):
                 os.rename(fn_tmp, fn)
 
             # output = os.path.join(dn, 'visualization')
-            evaluated = read_and_draw(fn, dn)
+            logger.info('Now creating visualization and analyzing statistics.')
+            logger.warning('This might take a LONG time.')
+
+            with notice_thread("Visualization", 5):
+                evaluated = read_and_draw(fn, dn)
+            logger.info('Finally visualization is done.')
 
             stats = {}
             for k, evr in evaluated.items():
@@ -177,6 +185,29 @@ def main(cie, log_dir, attempts):
         cie.set_score('%s_min' % k, float(np.min(values)))
         cie.set_score('%s_max' % k, float(np.max(values)))
 
+@contextmanager
+def notice_thread(msg, interval):
+    stop = False
+    t = Thread(target=notice_thread_child, args=(msg, interval, lambda: stop))
+    t.start()
+    try:
+
+        yield
+
+    finally:
+        stop = True
+        logger.info('waiting for thread to finish')
+        t.join()
+
+
+def notice_thread_child(msg, interval, stop_condition):
+    t0 = time.time()
+    while not stop_condition():
+        delta = time.time() - t0
+        logger.info(msg + '(running for %d seconds)' % delta)
+        time.sleep(interval)
+    logger.info('notice_thread_child finishes')
+
 
 def run_episode(sim_ci,
                 agents,
@@ -210,7 +241,6 @@ def run_episode(sim_ci,
     playable_robots = [_ for _ in scenario.robots if scenario.robots[_].playable]
     not_playable_robots = [_ for _ in scenario.robots if not scenario.robots[_].playable]
     playable_robots2agent = {_: v for _, v in zip(playable_robots, agents)}
-
 
     while True:
         if current_sim_time >= episode_length_s:
@@ -346,35 +376,24 @@ def env_as_yaml(name):
 import duckietown_challenges as dc
 
 
-class ExperimentManagerEvaluator(dc.ChallengeEvaluator):
-    def prepare(self, cie: dc.ChallengeInterfaceEvaluatorConcrete):
-        cie.set_challenge_parameters({})
+def wrap(cie: dc.ChallengeInterfaceEvaluator):
+    d = cie.get_tmp_dir()
+    logdir = os.path.join(d, 'episodes')
+    attempts = os.path.join(d, 'attempts')
+    if not os.path.exists(logdir):
+        os.makedirs(logdir)
+    if not os.path.exists(attempts):
+        os.makedirs(attempts)
+    try:
+        main(cie, logdir, attempts)
+        cie.set_score('simulation-passed', 1)
+    finally:
+        cie.info('saving files')
+        cie.set_evaluation_dir('episodes', logdir)
 
-        d = os.path.join(cie.root, 'challenge-solution-output')
-        if not os.path.exists(d):
-            os.makedirs(d)
-        fn = os.path.join(d, 'output-solution.yaml')
-        with open(fn, 'w') as f:
-            f.write('{}')
-        cie.info(f'Faked {fn}')
-
-    def score(self, cie: dc.ChallengeInterfaceEvaluator):
-        d = cie.get_tmp_dir()
-        logdir = os.path.join(d, 'episodes')
-        attempts = os.path.join(d, 'attempts')
-        if not os.path.exists(logdir):
-            os.makedirs(logdir)
-        if not os.path.exists(attempts):
-            os.makedirs(attempts)
-        try:
-            main(cie, logdir, attempts)
-            cie.set_score('simulation-passed', 1)
-        finally:
-            cie.info('saving files')
-            cie.set_evaluation_dir('episodes', logdir)
-
-        cie.info('score() terminated gracefully.')
-
+    cie.info('score() terminated gracefully.')
 
 if __name__ == '__main__':
-    dc.wrap_evaluator(ExperimentManagerEvaluator())
+
+    with dc.scoring_context() as cie:
+        wrap(cie)

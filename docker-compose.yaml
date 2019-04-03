@@ -5,7 +5,7 @@ services:
       DISABLE_CONTRACTS: 1
       AIDONODE_ENCODING: cbor
       experiment_manager_parameters: |
-        episodes_per_scenario: 1
+        episodes_per_scenario: 2
         episode_length_s: 5.0
         min_episode_length_s: 1.0
         seed: 42
@@ -26,7 +26,7 @@ services:
       AIDONODE_CONFIG: |
         maps:
         - 4way
-        scenarios_per_map: 2
+        scenarios_per_map: 1
     build:
       context: ./scenario_maker
     volumes: *volumes

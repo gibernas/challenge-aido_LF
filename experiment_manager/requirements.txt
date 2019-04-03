@@ -1,2 +1,2 @@
-#-e git://github.com/duckietown/duckietown-challenges.git@v4#egg=duckietown-challenges
+
 -e git://github.com/AndreaCensi/procgraph.git@master-python3#egg=procgraph

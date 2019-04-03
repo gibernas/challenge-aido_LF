@@ -13,5 +13,5 @@ RUN pip install -r requirements.txt
 # RUN conda install -c conda-forge opencv
 
 COPY . .
-
+ENV DISABLE_CONTRACTS=1
 ENTRYPOINT ["/bin/bash", "/project/launch.sh"]
