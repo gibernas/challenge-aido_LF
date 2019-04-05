@@ -74,15 +74,15 @@ class GymDuckiebotSimulator:
     def on_received_seed(self, context: Context, data: int):
         context.info(f'seed({data})')
 
-    def on_received_clear(self, context: Context):
+    def on_received_clear(self):
         self.robot_name = None
         self.spawn_pose = None
         self.npcs = {}
 
-    def on_received_set_map(self, context: Context, data: SetMap):
+    def on_received_set_map(self, data: SetMap):
         yaml_str: str = data.map_data
 
-        map_data = yaml.load(yaml_str)
+        map_data = yaml.load(yaml_str, Loader=yaml.SafeLoader)
 
         self.env._interpret_map(map_data)
 
@@ -94,11 +94,11 @@ class GymDuckiebotSimulator:
             q = data.configuration.pose
             pos, angle = self.env.weird_from_cartesian(q)
 
-            mesh =  ObjMesh.get('duckiebot')
+            mesh = ObjMesh.get('duckiebot')
 
             obj_desc = {'kind': 'duckiebot',
                         'mesh': mesh,
-                        'pos':pos,
+                        'pos': pos,
                         'rotate': np.rad2deg(angle),
                         'height': 0.12,
                         'y_rot': 0,
@@ -176,7 +176,7 @@ class GymDuckiebotSimulator:
         rid = RobotPerformance(robot_name=data, t_effective=self.current_time, performance=pm)
         context.write('robot_performance', rid)
 
-    def on_received_episode_start(self, context, data: EpisodeStart):
+    def on_received_episode_start(self, context: Context, data: EpisodeStart):
         self.current_time = 0.0
         self.reward_cumulative = 0
         self.episode_name = data.episode_name
@@ -247,7 +247,7 @@ class GymDuckiebotSimulator:
         timing = TimingInfo(acquired={'image': ts})
         context.write('robot_observations', self.ro, with_schema=True, timing=timing)
 
-    def on_received_get_robot_state(self, context, data:RobotName):
+    def on_received_get_robot_state(self, context: Context, data: RobotName):
         env = self.env
         speed = env.speed
         omega = 0.0  # XXX
@@ -268,8 +268,8 @@ class GymDuckiebotSimulator:
             v = geometry.se2_from_linear_angular([0, 0], 0)
             state = MyRobotInfo(pose=q,
                                 velocity=v,
-                                last_action=np.array([0,0]),
-                                wheels_velocities=np.array([0,0]))
+                                last_action=np.array([0, 0]),
+                                wheels_velocities=np.array([0, 0]))
             rs = MyRobotState(robot_name=data,
                               t_effective=self.current_time,
                               state=state)
