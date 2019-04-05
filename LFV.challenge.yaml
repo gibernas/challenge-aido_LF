@@ -1,6 +1,6 @@
 challenge: aido2_LFV_r1-v4
 
-title: "LFV - Lane following with Vehicles "
+title: "[AIDO 2] LFV - Lane following with Vehicles "
 tags: [aido2, LF, v4]
 description: |
   Lane following challenge.
@@ -81,9 +81,8 @@ steps:
             AIDONODE_DATA_OUT: fifo:/fifos/scenario_maker-out
             AIDONODE_CONFIG: |
               maps:
-              - 4way
-              - udem1
-              scenarios_per_map: 2
+              - ETHZ_autolab_technical_track
+              scenarios_per_map: 5
               robots_npcs: 4
           build:
             context: ./scenario_maker
