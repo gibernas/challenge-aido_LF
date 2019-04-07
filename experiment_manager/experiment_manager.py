@@ -38,27 +38,34 @@ class MyConfig:
     episodes_per_scenario: int
     max_failures: int
 
+    agent_in: str
+    agent_out: str
+    sim_in: str
+    sim_out: str
+    sm_in: str
+    sm_out: str
+
 
 def main(cie, log_dir, attempts):
+    config_ = env_as_yaml('experiment_manager_parameters')
+    logger.info('parameters:\n\n%s' % config_)
+    config = cast(MyConfig, ipce_to_object(config_, {}, expect_type=MyConfig))
+
     # first open all fifos
-    agent_in = '/fifos/agent-in'
-    agent_out = '/fifos/agent-out'
-    agent_ci = ComponentInterface(agent_in, agent_out, expect_protocol=protocol_agent, nickname="agent")
+    agent_ci = ComponentInterface(config.agent_in, config.agent_out,
+                                  expect_protocol=protocol_agent, nickname="agent")
     agents = [agent_ci]
-
-    sim_in = '/fifos/simulator-in'
-    sim_out = '/fifos/simulator-out'
-    sim_ci = ComponentInterface(sim_in, sim_out, expect_protocol=protocol_simulator, nickname="simulator")
-
-    sm_in = '/fifos/scenario_maker-in'
-    sm_out = '/fifos/scenario_maker-out'
-    sm_ci = ComponentInterface(sm_in, sm_out, expect_protocol=protocol_scenario_maker, nickname="scenario_maker")
+    sim_ci = ComponentInterface(config.sim_in, config.sim_out,
+                                expect_protocol=protocol_simulator, nickname="simulator")
+    sm_ci = ComponentInterface(config.sm_in, config.sm_out,
+                               expect_protocol=protocol_scenario_maker, nickname="scenario_maker")
 
     # then check compatibility
     # so that everything fails gracefully in case of error
-    agent_ci._get_node_protocol()
-    sm_ci._get_node_protocol()
-    sim_ci._get_node_protocol()
+    timeout_initialization = 20
+    agent_ci._get_node_protocol(timeout=timeout_initialization)
+    sm_ci._get_node_protocol(timeout=timeout_initialization)
+    sim_ci._get_node_protocol(timeout=timeout_initialization)
 
     check_compatibility_between_agent_and_sim(agent_ci, sim_ci)
 
@@ -66,16 +73,14 @@ def main(cie, log_dir, attempts):
     per_episode = {}
     stats = {}
     try:
-        config_ = env_as_yaml('experiment_manager_parameters')
-        logger.info('parameters:\n\n%s' % config_)
-        config = cast(MyConfig, ipce_to_object(config_, {}, expect_type=MyConfig))
 
         nfailures = 0
 
         sim_ci.write('seed', config.seed)
         agent_ci.write('seed', config.seed)
 
-        episodes = get_episodes(sm_ci, episodes_per_scenario=config.episodes_per_scenario, seed=config.seed)
+        episodes = get_episodes(sm_ci, episodes_per_scenario=config.episodes_per_scenario,
+                                seed=config.seed)
 
         while episodes:
 
@@ -143,7 +148,6 @@ def main(cie, log_dir, attempts):
                 assert isinstance(evr, RuleEvaluationResult)
                 for m, em in evr.metrics.items():
                     assert isinstance(em, EvaluatedMetric)
-
                     assert isinstance(m, tuple)
                     if m:
                         M = "/".join(m)
@@ -184,6 +188,7 @@ def main(cie, log_dir, attempts):
         cie.set_score('%s_median' % k, float(np.median(values)))
         cie.set_score('%s_min' % k, float(np.min(values)))
         cie.set_score('%s_max' % k, float(np.max(values)))
+
 
 @contextmanager
 def notice_thread(msg, interval):
@@ -393,7 +398,7 @@ def wrap(cie: dc.ChallengeInterfaceEvaluator):
 
     cie.info('score() terminated gracefully.')
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     with dc.scoring_context() as cie:
         wrap(cie)

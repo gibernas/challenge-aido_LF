@@ -29,7 +29,7 @@ define-challenge-LFVI-no-cache:
 
 test-with-local-repos:
 	docker-compose -f docker-compose-devel.yaml down -v
-	docker-compose -f docker-compose-devel.yaml build --pull
+	#docker-compose -f docker-compose-devel.yaml build
 	docker-compose -f docker-compose-devel.yaml up -V --build
 
 test-regular:

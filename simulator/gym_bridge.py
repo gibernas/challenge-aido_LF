@@ -213,10 +213,10 @@ class GymDuckiebotSimulator:
         snapshots = list(get_snapshots(self.last_observations_time, self.current_time, until, dt))
 
         steps = snapshots + [until]
-        context.info(f'current time: {self.current_time}')
-        context.info(f'       until: {until}')
-        context.info(f'    last_obs: {self.last_observations_time}')
-        context.info(f'   snapshots: {snapshots}')
+        # context.info(f'current time: {self.current_time}')
+        # context.info(f'       until: {until}')
+        # context.info(f'    last_obs: {self.last_observations_time}')
+        # context.info(f'   snapshots: {snapshots}')
 
         for t1 in steps:
             delta_time = t1 - self.current_time
@@ -277,7 +277,7 @@ class GymDuckiebotSimulator:
         t = timestamp_from_seconds(self.current_time)
         ts = TimeSpec(time=t, frame=self.episode_name, clock=context.get_hostname())
         timing = TimingInfo(acquired={'state': ts})
-        context.write('robot_state', rs, timing=timing, with_schema=True)
+        context.write('robot_state', rs, timing=timing) #, with_schema=True)
 
     def on_received_dump_state(self, context: Context):
         context.write('dump_state', StateDump(None))

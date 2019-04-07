@@ -9,8 +9,8 @@ build:
 build-no-cache:
 	docker build -t $(tag)  --no-cache .
 
-push: build
-	docker push $(tag)
+#push: build
+#	docker push $(tag)
 
 test-data1-direct:
 	./random_agent.py < test_data/in1.json > test_data/out1.json
@@ -21,5 +21,3 @@ test-data1-docker:
 
 submit:
 	dts challenges submit
-	dts challenges submit --challenge aido2_LFV_r1-v4
-
