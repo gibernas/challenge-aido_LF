@@ -1,7 +1,7 @@
 challenge: aido2_LFVI_r1-v4
 
 title: "[AIDO 2] LFVI - Lane following with Vehicles + intersections "
-tags: [aido2, LF, v4]
+tags: [aido2, aido2-embodied, LF, v4]
 description: |
 
 protocol: aido2_db18_agent_1
@@ -69,6 +69,12 @@ steps:
               seed: 42
               physics_dt: 0.05
               max_failures: 2
+              agent_in: /fifos/agent-in
+              agent_out: /fifos/agent-out
+              sim_in: /fifos/simulator-in
+              sim_out: /fifos/simulator-out
+              sm_in: /fifos/scenario_maker-in
+              sm_out: /fifos/scenario_maker-out
           build:
             context: ./experiment_manager
 

@@ -11,6 +11,12 @@ services:
         seed: 42
         physics_dt: 0.05
         max_failures: 2
+        agent_in: /fifos/agent-in
+        agent_out: /fifos/agent-out
+        sim_in: /fifos/simulator-in
+        sim_out: /fifos/simulator-out
+        sm_in: /fifos/scenario_maker-in
+        sm_out: /fifos/scenario_maker-out
     build:
       context: ./experiment_manager
     volumes: &volumes
@@ -20,8 +26,9 @@ services:
       - ${DT_ENV_DEVELOPER}/src/duckietown-world/src:/project/src/duckietown-world/src:ro
       - ${DT_ENV_DEVELOPER}/src/gym-duckietown:/gym-duckietown:ro
       - ${DT_ENV_DEVELOPER}/src/duckietown-challenges/src:/project/src/duckietown-challenges/src:ro
-#      - ${dt-env-developer}/src/zuper_nodes/src:/project/src/zuper-nodes/src:ro
-#      - ${dt-env-developer}/src/zuper_json/src:/project/src/zuper-utils/src:ro
+      - ${DT_ENV_DEVELOPER}/src/zuper-nodes/src:/project/src/zuper-nodes/src:ro
+      - ${DT_ENV_DEVELOPER}/src/zuper-json/src:/project/src/zuper-utils/src:ro
+
 
   scenario_maker:
     environment:

@@ -21,4 +21,3 @@ test-data1-docker:
 
 submit:
 	dts challenges submit
-
