@@ -26,8 +26,8 @@ services:
       - ${DT_ENV_DEVELOPER}/src/duckietown-world/src:/project/src/duckietown-world/src:ro
       - ${DT_ENV_DEVELOPER}/src/gym-duckietown:/gym-duckietown:ro
       - ${DT_ENV_DEVELOPER}/src/duckietown-challenges/src:/project/src/duckietown-challenges/src:ro
-      - ${DT_ENV_DEVELOPER}/src/zuper-nodes/src:/project/src/zuper-nodes/src:ro
-      - ${DT_ENV_DEVELOPER}/src/zuper-json/src:/project/src/zuper-utils/src:ro
+      #- ${DT_ENV_DEVELOPER}/src/zuper-nodes/src:/project/src/zuper-nodes/src:ro
+      #- ${DT_ENV_DEVELOPER}/src/zuper-json/src:/project/src/zuper-utils/src:ro
 
 
   scenario_maker:

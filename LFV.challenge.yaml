@@ -66,7 +66,7 @@ steps:
             experiment_manager_parameters: |
               episodes_per_scenario: 1
               episode_length_s: 15.0
-              min_episode_length_s: 0.5
+              min_episode_length_s: 0
               seed: 42
               physics_dt: 0.05
               max_failures: 2

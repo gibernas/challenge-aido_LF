@@ -3,6 +3,7 @@ challenge:
 - aido2_LF_r2-v4
 - aido2_LFV_r1-v4
 - aido2_LFVI_r1-v4
+
 # conventions + format
 protocol: aido2_db18_agent_1
 # any user label - displayed in "challenges list"

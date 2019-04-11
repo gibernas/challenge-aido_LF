@@ -21,3 +21,7 @@ test-data1-docker:
 
 submit:
 	dts challenges submit
+
+
+submit-robotarium:
+	dts challenges submit --challenge aido2_LF_r_pri,aido2_LF_r_pub
