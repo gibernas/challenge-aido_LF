@@ -37,6 +37,11 @@ test-regular:
 	docker-compose -f docker-compose.yaml build --pull
 	docker-compose -f docker-compose.yaml up -V --build
 
+test-regular-no-pull:
+	docker-compose -f docker-compose.yaml down -v
+	docker-compose -f docker-compose.yaml build
+	docker-compose -f docker-compose.yaml up -V --build
+
 
 test-regular-no-cache:
 	docker-compose -f docker-compose.yaml down -v

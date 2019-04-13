@@ -20,6 +20,7 @@ from aido_schemas.utils_drawing import read_and_draw
 from aido_schemas.utils_video import make_video1
 from duckietown_world.rules import RuleEvaluationResult
 from duckietown_world.rules.rule import EvaluatedMetric
+from zuper_commons.text import indent
 from zuper_json.ipce import object_to_ipce, ipce_to_object
 from zuper_json.subcheck import can_be_used_as
 from zuper_nodes_wrapper.wrapper_outside import ComponentInterface, MsgReceived
@@ -76,8 +77,8 @@ def main(cie, log_dir, attempts):
 
         nfailures = 0
 
-        sim_ci.write('seed', config.seed)
-        agent_ci.write('seed', config.seed)
+        sim_ci.write_topic_and_expect_zero('seed', config.seed)
+        agent_ci.write_topic_and_expect_zero('seed', config.seed)
 
         episodes = get_episodes(sm_ci, episodes_per_scenario=config.episodes_per_scenario,
                                 seed=config.seed)
@@ -171,7 +172,8 @@ def main(cie, log_dir, attempts):
     except dc.InvalidSubmission:
         raise
     except BaseException as e:
-        msg = 'Anomalous error while running episodes:\n%s' % traceback.format_exc()
+        msg = 'Anomalous error while running episodes:'
+        msg += '\n\n' + indent(traceback.format_exc(), ' > ')
         logger.error(msg)
         raise dc.InvalidEvaluator(msg) from e
 
@@ -214,28 +216,29 @@ def notice_thread_child(msg, interval, stop_condition):
     logger.info('notice_thread_child finishes')
 
 
-def run_episode(sim_ci,
-                agents,
+def run_episode(sim_ci: ComponentInterface,
+                agents: List[ComponentInterface],
                 physics_dt: float,
                 episode_name, scenario: Scenario,
                 episode_length_s: float) -> float:
     ''' returns number of steps '''
 
     # clear simulation
-    sim_ci.write('clear')
+    sim_ci.write_topic_and_expect_zero('clear')
     # set map data
-    sim_ci.write('set_map', SetMap(map_data=scenario.environment))
+    sim_ci.write_topic_and_expect_zero('set_map', SetMap(map_data=scenario.environment))
 
     # spawn robot
     for robot_name, robot_conf in scenario.robots.items():
-        sim_ci.write('spawn_robot', SpawnRobot(robot_name=robot_name, configuration=robot_conf.configuration,
-                                               playable=robot_conf.playable))
+        sim_ci.write_topic_and_expect_zero('spawn_robot',
+                                           SpawnRobot(robot_name=robot_name, configuration=robot_conf.configuration,
+                                                      playable=robot_conf.playable))
 
     # start episode
-    sim_ci.write('episode_start', EpisodeStart(episode_name))
+    sim_ci.write_topic_and_expect_zero('episode_start', EpisodeStart(episode_name))
 
     for agent in agents:
-        agent.write('episode_start', EpisodeStart(episode_name))
+        agent.write_topic_and_expect_zero('episode_start', EpisodeStart(episode_name))
 
     current_sim_time = 0.0
 
@@ -245,7 +248,7 @@ def run_episode(sim_ci,
 
     playable_robots = [_ for _ in scenario.robots if scenario.robots[_].playable]
     not_playable_robots = [_ for _ in scenario.robots if not scenario.robots[_].playable]
-    playable_robots2agent = {_: v for _, v in zip(playable_robots, agents)}
+    playable_robots2agent: Dict[str, ComponentInterface] = {_: v for _, v in zip(playable_robots, agents)}
 
     while True:
         if current_sim_time >= episode_length_s:
@@ -259,38 +262,47 @@ def run_episode(sim_ci,
 
             # have this first, so we have something for t = 0
             with tt.measure(f'sim_compute_robot_state-{robot_name}'):
-                sim_ci.write('get_robot_state', robot_name)
-                _recv: MsgReceived[RobotState] = sim_ci.read_one(expect_topic='robot_state')
+
+                _recv: MsgReceived[RobotState] = \
+                    sim_ci.write_topic_and_expect('get_robot_state', robot_name,
+                                                  expect='robot_state')
 
             with tt.measure(f'sim_compute_performance-{robot_name}'):
-                sim_ci.write('get_robot_performance', robot_name)
-                _recv: MsgReceived[RobotPerformance] = sim_ci.read_one(expect_topic='robot_performance')
+
+                _recv: MsgReceived[RobotPerformance] = \
+                    sim_ci.write_topic_and_expect('get_robot_performance',
+                                                  robot_name,
+                                                  expect='robot_performance')
 
             with tt.measure(f'sim_render-{robot_name}'):
-                sim_ci.write('get_robot_observations', robot_name)
-                recv: MsgReceived[RobotObservations] = sim_ci.read_one(expect_topic='robot_observations')
+                recv: MsgReceived[RobotObservations] = \
+                    sim_ci.write_topic_and_expect('get_robot_observations', robot_name,
+                                                  expect='robot_observations')
 
             with tt.measure(f'agent_compute-{robot_name}'):
                 try:
-                    agent.write('observations', recv.data.observations)
-                    agent.write('get_commands')
-                    r: MsgReceived = agent.read_one(expect_topic='commands')
+                    agent.write_topic_and_expect_zero('observations', recv.data.observations)
+                    r: MsgReceived = agent.write_topic_and_expect('get_commands', expect='commands')
+
                 except BaseException as e:
                     msg = 'Trouble with communication to the agent.'
                     raise dc.InvalidSubmission(msg) from e
 
             with tt.measure('set_robot_commands'):
                 commands = SetRobotCommands(robot_name=robot_name, commands=r.data, t_effective=current_sim_time)
-                sim_ci.write('set_robot_commands', commands)
+                sim_ci.write_topic_and_expect_zero('set_robot_commands', commands)
 
         for robot_name in not_playable_robots:
             with tt.measure(f'sim_compute_robot_state-{robot_name}'):
-                sim_ci.write('get_robot_state', robot_name)
-                _recv: MsgReceived[RobotState] = sim_ci.read_one(expect_topic='robot_state')
+                _recv: MsgReceived[RobotState] = \
+                    sim_ci.write_topic_and_expect('get_robot_state', robot_name,
+                                                  expect='robot_state')
 
         with tt.measure('sim_compute_sim_state'):
-            sim_ci.write('get_sim_state')
-            recv: MsgReceived[SimulationState] = sim_ci.read_one(expect_topic='sim_state')
+
+            recv: MsgReceived[SimulationState] = \
+                sim_ci.write_topic_and_expect('get_sim_state', expect='sim_state')
+
             sim_state: SimulationState = recv.data
             if sim_state.done:
                 logger.info(f'Breaking because of simulator ({sim_state.done_code} - {sim_state.done_why}')
@@ -298,14 +310,14 @@ def run_episode(sim_ci,
 
         with tt.measure('sim_physics'):
             current_sim_time += physics_dt
-            sim_ci.write('step', Step(current_sim_time))
+            sim_ci.write_topic_and_expect_zero('step', Step(current_sim_time))
 
         log_timing_info(tt, sim_ci)
 
     return current_sim_time
 
 
-def log_timing_info(tt, sim_ci):
+def log_timing_info(tt, sim_ci: ComponentInterface):
     ipce = object_to_ipce(tt, {}, with_schema=True)
     msg = {'compat': ['aido2'], 'topic': 'timing_information', 'data': ipce}
     j = sim_ci._serialize(msg)
@@ -313,13 +325,24 @@ def log_timing_info(tt, sim_ci):
     sim_ci._cc.flush()
 
 
-def check_compatibility_between_agent_and_sim(agent_ci, sim_ci):
+def check_compatibility_between_agent_and_sim(agent_ci: ComponentInterface, sim_ci: ComponentInterface):
     type_observations_sim = sim_ci.node_protocol.outputs['robot_observations'].__annotations__['observations']
     logger.info(f'Simulation provides observations {type_observations_sim}')
-    type_observations_agent = agent_ci.node_protocol.inputs['observations']
-    logger.info(f'Agent requires observations {type_observations_agent}')
     type_commands_sim = sim_ci.node_protocol.inputs['set_robot_commands'].__annotations__['commands']
     logger.info(f'Simulation requires commands {type_commands_sim}')
+
+    if agent_ci.node_protocol is None:
+        msg = 'Cannot check compatibility of interfaces because the agent does not implement reflection.'
+        logger.warning(msg)
+
+        agent_ci.expect_protocol.outputs['commands'] = type_commands_sim
+        agent_ci.expect_protocol.inputs['observations'] = type_observations_sim
+
+        return
+
+    type_observations_agent = agent_ci.node_protocol.inputs['observations']
+    logger.info(f'Agent requires observations {type_observations_agent}')
+
     type_commands_agent = agent_ci.node_protocol.outputs['commands']
     logger.info(f'Agent provides commands {type_commands_agent}')
 
@@ -341,13 +364,12 @@ class EpisodeSpec:
     scenario: Scenario
 
 
-def get_episodes(sm_ci, episodes_per_scenario: int, seed: int) -> List[EpisodeSpec]:
-    sm_ci.write('seed', seed)
+def get_episodes(sm_ci: ComponentInterface, episodes_per_scenario: int, seed: int) -> List[EpisodeSpec]:
+    sm_ci.write_topic_and_expect_zero('seed', seed)
 
     def iterate_scenarios() -> Iterator[Scenario]:
         while True:
-            sm_ci.write('next_scenario')
-            recv = sm_ci.read_one()
+            recv = sm_ci.write_topic_and_expect('next_scenario')
             if recv.topic == 'finished':
                 sm_ci.close()
                 break
@@ -372,7 +394,7 @@ def env_as_yaml(name):
         raise Exception(msg)
     v = environment[name]
     try:
-        return yaml.load(v)
+        return yaml.load(v, Loader=yaml.SafeLoader)
     except Exception as e:
         msg = 'Could not load YAML: %s\n\n%s' % (e, v)
         raise Exception(msg)

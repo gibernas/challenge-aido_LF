@@ -7,7 +7,7 @@ challenge:
 # conventions + format
 protocol: aido2_db18_agent-z2
 # any user label - displayed in "challenges list"
-user-label: Minimal agent (Python 3)
+user-label: Minimal agent (Python 2)
 # any JSON payload
 user-payload: {}
 

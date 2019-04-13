@@ -1,11 +1,11 @@
-challenge: aido2_LFV_r1-v4
+challenge: aido2_LFV_r3-v4-z2
 
 title: "[AIDO 2] LFV - Lane following with Vehicles "
 tags: [aido2, aido2-embodied, LF, v4]
 description: |
   Lane following challenge.
 
-protocol: aido2_db18_agent_1
+protocol: aido2_db18_agent-z2
 
 date-open: 2018-12-07
 date-close: 2019-12-07

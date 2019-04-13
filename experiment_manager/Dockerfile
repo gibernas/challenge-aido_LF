@@ -1,4 +1,4 @@
-FROM duckietown/aido2-base-python3:v4
+FROM duckietown/aido2-base-python3:z2
 
 
 COPY requirements.txt requirements.txt
