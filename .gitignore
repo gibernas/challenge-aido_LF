@@ -9,3 +9,5 @@ logs
 out-comptests
 sq.db
 challenges-dir
+evaluator.log
+output-local-evaluation

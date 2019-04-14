@@ -1,11 +1,12 @@
-challenge: aido2-LF-sim-validation
+challenge: aido2-LF-sim-testing
 
-title: "LF 🚗 - Lane following  (simulation 👾, validation 🏋)"
-tags: [visible, ml-validation, aido2, aido2-embodied, LF, v4]
+title: "LF 🚗 - Lane following (simulation 👾, testing 🥇)"
+tags: [visible, ml-testing, aido2, aido2-embodied, LF, v4]
 description: |
   Lane following challenge.
 
 protocol: aido2_db18_agent-z2
+
 
 date-open: 2019-04-10
 date-close: 2019-05-15

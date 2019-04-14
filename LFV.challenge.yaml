@@ -1,53 +1,16 @@
-challenge: aido2_LFV_r3-v4-z2
+challenge: aido2-LFV-sim-validation
 
-title: "[AIDO 2] LFV - Lane following with Vehicles "
-tags: [aido2, aido2-embodied, LF, v4]
+title: "LFV 🚗🚗 - Lane following + Vehicles (simulation 👾, validation 🏋)"
+tags: [visible, ml-validation, aido2, aido2-embodied, LFV, v4]
 description: |
   Lane following challenge.
 
 protocol: aido2_db18_agent-z2
 
-date-open: 2018-12-07
-date-close: 2019-12-07
+date-open: 2019-04-10
+date-close: 2019-05-15
 
-roles: {}
-
-scoring:
-  scores:
-
-    - name: driven_lanedir_consec_median
-      short: Traveled distance
-      description: |
-        This is the median distance traveled, *along a lane*.
-        (That is, going in circles will not make this metric increase.)
-
-        This is discretized to tiles.
-      order: higher-is-better
-      discretization: 0.62
-
-    - name: survival_time_median
-      short: Survival time
-      description: |
-        This is the median survival time. The simulation
-        is terminated when the car goes outside of the road
-        or it crashes with an obstacle.
-      order: higher-is-better
-      discretization: 2.0
-
-    - name: deviation-center-line_median
-      short: Lateral deviation
-      description: |
-        This is the median lateral deviation from the center line.
-      order: lower-is-better
-      discretization: 0.01
-
-    - name: in-drivable-lane_median
-      short: Major infractions
-      description: |
-        This is the median of the time spent outside of the drivable zones.
-        For example this penalizes driving in the wrong lane.
-      order: lower-is-better
-      discretization: 0.2
+scoring: !include scoring.yaml
 
 
 
@@ -56,28 +19,13 @@ steps:
     title: Simulation step
     description: ""
 
-    timeout: 10
+    timeout: 1200 # 20 minutes
     evaluation_parameters:
       services:
-        evaluator:
-          environment:
-            DISABLE_CONTRACTS: 1
-            AIDONODE_ENCODING: cbor
-            experiment_manager_parameters: |
-              episodes_per_scenario: 1
-              episode_length_s: 15.0
-              min_episode_length_s: 0
-              seed: 42
-              physics_dt: 0.05
-              max_failures: 2
-              agent_in: /fifos/agent-in
-              agent_out: /fifos/agent-out
-              sim_in: /fifos/simulator-in
-              sim_out: /fifos/simulator-out
-              sm_in: /fifos/scenario_maker-in
-              sm_out: /fifos/scenario_maker-out
-          build:
-            context: ./experiment_manager
+        evaluator: !include comp_evaluator.yaml
+        simulator: !include comp_simulator.yaml
+        solution: !include comp_solution.yaml
+
 
         scenario_maker:
           environment:
@@ -93,34 +41,4 @@ steps:
           build:
             context: ./scenario_maker
 
-        simulator:
-          build:
-            context: ./simulator
-          environment:
-            AIDONODE_DATA_IN: /fifos/simulator-in
-            AIDONODE_DATA_OUT: fifo:/fifos/simulator-out
-            AIDONODE_ENCODING: cbor
-            AIDONODE_CONFIG: |
-              env_constructor: Simulator
-              env_parameters:
-                max_steps: 500001 # we don't want the gym to reset itself
-                domain_rand: 0
-                camera_width: 640
-                camera_height: 480
-                distortion: true
 
-        solution:
-          image: SUBMISSION_CONTAINER
-          environment:
-            AIDONODE_DATA_IN: /fifos/agent-in
-            AIDONODE_DATA_OUT: fifo:/fifos/agent-out
-            AIDONODE_ENCODING: cbor
-
-
-
-
-transitions:
-  - [START, success, step1-simulation]
-  - [step1-simulation, success, SUCCESS]
-  - [step1-simulation, failed, FAILED]
-  - [step1-simulation, error, ERROR]

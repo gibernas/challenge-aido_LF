@@ -1,13 +1,10 @@
-# challenge name
-challenge:
-- aido2_LF_r3-v4-z2
-- aido2_LFV_r3-v4-z2
-- aido2_LFVI_r3-v4-z2
+# challenge name(s); defaults to all compatible challenges
+# challenge: [c1,c2]
 
 # conventions + format
 protocol: aido2_db18_agent-z2
 # any user label - displayed in "challenges list"
-user-label: Minimal agent (Python 3)
+user-label: minimal_agent (Python 3)
 # any JSON payload
 user-payload: {}
 

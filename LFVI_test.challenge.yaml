@@ -1,15 +1,13 @@
-challenge: aido2-LF-sim-validation
+challenge: aido2-LFVI-sim-testing
 
-title: "LF 🚗 - Lane following  (simulation 👾, validation 🏋)"
-tags: [visible, ml-validation, aido2, aido2-embodied, LF, v4]
+title: "LFVI 🚗🚗🚦 - Lane following + Vehicles + Intersections (simulation 👾, testing 🥇) "
+tags: [visible, ml-testing, aido2, aido2-embodied, LFVI, v4]
 description: |
-  Lane following challenge.
 
 protocol: aido2_db18_agent-z2
 
 date-open: 2019-04-10
 date-close: 2019-05-15
-
 scoring: !include scoring.yaml
 
 steps:
@@ -30,9 +28,9 @@ steps:
             AIDONODE_DATA_OUT: fifo:/fifos/scenario_maker-out
             AIDONODE_CONFIG: |
               maps:
-              - ETHZ_autolab_technical_track
+              - udem1
               scenarios_per_map: 5
-              robots_npcs: 0
+              robots_npcs: 4
           build:
             context: ./scenario_maker
 
