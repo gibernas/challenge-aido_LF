@@ -1,7 +1,7 @@
 challenge: aido2-LF-sim-validation
 
 title: "LF 🚗 - Lane following  (simulation 👾, validation 🏋)"
-tags: [visible, ml-validation, aido2, aido2-embodied, LF, v4]
+tags: [visible, ml-validation, aido2, aido2-embodied, LF, v4, simulation]
 description: |
   Lane following challenge.
 

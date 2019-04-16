@@ -1,7 +1,7 @@
 challenge: aido2-LFVI-sim-testing
 
 title: "LFVI 🚗🚗🚦 - Lane following + Vehicles + Intersections (simulation 👾, testing 🥇) "
-tags: [visible, ml-testing, aido2, aido2-embodied, LFVI, v4]
+tags: [visible, ml-testing, aido2, aido2-embodied, LFVI, v4, simulation]
 description: |
 
 protocol: aido2_db18_agent-z2
