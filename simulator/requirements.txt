@@ -4,15 +4,17 @@
 -e git+https://github.com/AndreaCensi/zuper-commons.git@z2#egg=zuper-commons
 -e git+https://github.com/duckietown/aido-protocols.git@z2#egg=aido-protocols
 
-#https://github.com/duckietown/duckietown-world/archive/aido2_lf_r1.tar.gz#egg=duckietown-world
--e git+https://github.com/duckietown/duckietown-world.git@aido2_lf_r1#egg=duckietown-world
--e git+https://github.com/duckietown/gym-duckietown.git@aido2_lf_r1#egg=gym-duckietown
-#https://github.com/duckietown/gym-duckietown/archive/aido2_lf_r1.tar.gz#egg=gym-duckietown
+-e git+https://github.com/duckietown/duckietown-world.git@aido2#egg=duckietown-world
+-e git+https://github.com/duckietown/gym-duckietown.git@aido2#egg=gym-duckietown
+
+
+#https://github.com/duckietown/gym-duckietown/archive/aido2.tar.gz#egg=gym-duckietown
 
 numpy==1.16.2
 
 
 #PyGeometry
+
 
 
 

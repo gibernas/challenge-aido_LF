@@ -13,5 +13,8 @@ environment:
     sim_out: /fifos/simulator-out
     sm_in: /fifos/scenario_maker-in
     sm_out: /fifos/scenario_maker-out
+    timeout_initialization: 15
+    timeout_regular: 30
+
 build:
   context: ./experiment_manager
