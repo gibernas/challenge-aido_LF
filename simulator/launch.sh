@@ -24,8 +24,8 @@ echo "$prefix Started xvfb with PID $xvfb"
 export DISPLAY=:99
 
 
-echo "$prefix Now running gym_simulation_launcher.py"
-python gym_bridge.py
+echo "$prefix Now running gym_bridge.py"
+python3 gym_bridge.py
 ret=$?
 echo "$prefix gym_simulation_launcher terminated with return code $ret"
 

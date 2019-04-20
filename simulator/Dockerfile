@@ -1,4 +1,4 @@
-FROM duckietown/gym-duckietown-server-python3:aido2_lf_r1
+FROM duckietown/gym-duckietown-server-python3:aido2
 
 
 WORKDIR /project
@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y git
 RUN git --version
 
 COPY requirements.txt requirements.txt
+RUN python --version
 RUN pip install -r requirements.txt
 RUN pip list
 

@@ -23,6 +23,7 @@ from duckietown_world.rules.rule import EvaluatedMetric
 from zuper_commons.text import indent
 from zuper_json.ipce import object_to_ipce, ipce_to_object
 from zuper_json.subcheck import can_be_used_as
+from zuper_nodes.structures import RemoteNodeAborted
 from zuper_nodes_wrapper.wrapper_outside import ComponentInterface, MsgReceived
 
 logging.basicConfig()
@@ -46,6 +47,8 @@ class MyConfig:
     sm_in: str
     sm_out: str
 
+    timeout_initialization: int
+    timeout_regular: int
 
 def main(cie, log_dir, attempts):
     config_ = env_as_yaml('experiment_manager_parameters')
@@ -54,19 +57,24 @@ def main(cie, log_dir, attempts):
 
     # first open all fifos
     agent_ci = ComponentInterface(config.agent_in, config.agent_out,
-                                  expect_protocol=protocol_agent, nickname="agent")
+                                  expect_protocol=protocol_agent, nickname="agent",
+                                  timeout=config.timeout_regular)
     agents = [agent_ci]
     sim_ci = ComponentInterface(config.sim_in, config.sim_out,
-                                expect_protocol=protocol_simulator, nickname="simulator")
+                                expect_protocol=protocol_simulator, nickname="simulator",
+                                timeout=config.timeout_regular)
     sm_ci = ComponentInterface(config.sm_in, config.sm_out,
-                               expect_protocol=protocol_scenario_maker, nickname="scenario_maker")
+                               expect_protocol=protocol_scenario_maker, nickname="scenario_maker",
+                               timeout=config.timeout_regular)
 
     # then check compatibility
     # so that everything fails gracefully in case of error
-    timeout_initialization = 20
-    agent_ci._get_node_protocol(timeout=timeout_initialization)
-    sm_ci._get_node_protocol(timeout=timeout_initialization)
-    sim_ci._get_node_protocol(timeout=timeout_initialization)
+
+
+
+    sm_ci._get_node_protocol(timeout=config.timeout_initialization)
+    sim_ci._get_node_protocol(timeout=config.timeout_initialization)
+    agent_ci._get_node_protocol(timeout=config.timeout_initialization)
 
     check_compatibility_between_agent_and_sim(agent_ci, sim_ci)
 
@@ -423,4 +431,13 @@ def wrap(cie: dc.ChallengeInterfaceEvaluator):
 
 if __name__ == '__main__':
     with dc.scoring_context() as cie:
-        wrap(cie)
+        try:
+            wrap(cie)
+        except RemoteNodeAborted as e:
+            msg = 'It appears that one of the remote nodes has aborted.\n' \
+                  'I will wait 10 seconds before aborting myself so that its\n' \
+                  'error will be detected by the evaluator rather than mine.'
+            msg += f'\n\n{traceback.format_exc()}'
+            cie.error(msg)
+            time.sleep(10)
+            raise

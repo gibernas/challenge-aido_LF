@@ -2,8 +2,6 @@ version: '3'
 services:
   experiment_manager:
     environment:
-      DISABLE_CONTRACTS: 1
-      AIDONODE_ENCODING: cbor
       experiment_manager_parameters: |
         episodes_per_scenario: 2
         episode_length_s: 1.0
@@ -17,6 +15,9 @@ services:
         sim_out: /fifos/simulator-out
         sm_in: /fifos/scenario_maker-in
         sm_out: /fifos/scenario_maker-out
+        timeout_initialization: 15
+        timeout_regular: 30
+
     build:
       context: ./experiment_manager
     volumes: &volumes
@@ -24,24 +25,23 @@ services:
       - fifos:/fifos
       - ${DT_ENV_DEVELOPER}/src/aido-protocols/src:/project/src/aido-protocols/src:ro
       - ${DT_ENV_DEVELOPER}/src/duckietown-world/src:/project/src/duckietown-world/src:ro
-      - ${DT_ENV_DEVELOPER}/src/gym-duckietown:/gym-duckietown:ro
+      - ${DT_ENV_DEVELOPER}/src/gym-duckietown:/project/src/gym-duckietown:ro
       - ${DT_ENV_DEVELOPER}/src/duckietown-challenges/src:/project/src/duckietown-challenges/src:ro
-      - ${DT_ENV_DEVELOPER}/src/zuper-nodes/src:/project/src/zuper-nodes/src:ro
-      - ${DT_ENV_DEVELOPER}/src/zuper-utils/src:/project/src/zuper-utils/src:ro
-      - ${DT_ENV_DEVELOPER}/src/zuper-commons/src:/project/src/zuper-commons/src:ro
+      #- ${DT_ENV_DEVELOPER}/src/zuper-nodes/src:/project/src/zuper-nodes/src:ro
+      #- ${DT_ENV_DEVELOPER}/src/zuper-utils/src:/project/src/zuper-utils/src:ro
+      #- ${DT_ENV_DEVELOPER}/src/zuper-commons/src:/project/src/zuper-commons/src:ro
 
 
 
   scenario_maker:
     environment:
-      DISABLE_CONTRACTS: 1
-      AIDONODE_ENCODING: cbor
       AIDONODE_DATA_IN: /fifos/scenario_maker-in
       AIDONODE_DATA_OUT: fifo:/fifos/scenario_maker-out
       AIDONODE_CONFIG: |
         maps:
-        - 4way
-        scenarios_per_map: 1
+        - udem1
+        scenarios_per_map: 5
+        robots_npcs: 4
     build:
       context: ./scenario_maker
     volumes: *volumes
@@ -51,7 +51,6 @@ services:
     environment:
       AIDONODE_DATA_IN: /fifos/simulator-in
       AIDONODE_DATA_OUT: fifo:/fifos/simulator-out
-      AIDONODE_ENCODING: cbor
       AIDONODE_CONFIG: |
         env_constructor: Simulator
         env_parameters:
@@ -64,11 +63,10 @@ services:
 
   solution:
     build:
-      context: ./minimal_agent_python2
+      context: ./minimal_agent
     environment:
       AIDONODE_DATA_IN: /fifos/agent-in
       AIDONODE_DATA_OUT: fifo:/fifos/agent-out
-      AIDONODE_ENCODING: cbor
     volumes: *volumes
 volumes:
   fifos:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
+import math
 from dataclasses import dataclass
-from typing import Iterator
+from typing import *
 
 import numpy as np
 import yaml
@@ -8,8 +9,9 @@ import yaml
 import geometry
 from aido_schemas import wrap_direct, Context, PWMCommands, JPGImage, Duckiebot1Observations, EpisodeStart, \
     DB18RobotObservations, DB18SetRobotCommands, SetMap, SpawnRobot, RobotName, StateDump, Step, \
-    RobotInterfaceDescription, RobotState, RobotPerformance, Metric, PerformanceMetrics, SimulationState
-from aido_schemas.schemas import protocol_simulator_duckiebot1
+    RobotInterfaceDescription, RobotState, RobotPerformance, Metric, PerformanceMetrics, SimulationState, \
+    protocol_simulator_duckiebot1
+from duckietown_world.world_duckietown.pwm_dynamics import get_DB18_nominal
 from gym_duckietown.envs import DuckietownEnv
 from gym_duckietown.objects import DuckiebotObj
 from gym_duckietown.simulator import Simulator, NotInLane, SAFETY_RAD_MULT, WHEEL_DIST, ROBOT_WIDTH, ROBOT_LENGTH, \
@@ -56,6 +58,11 @@ class GymDuckiebotSimulator:
     reward_cumulative: float
     episode_name: str
 
+    #
+    # npcs: dict
+    # robot_name: str
+    # spawn_configuration: Any
+
     def init(self):
         env_parameters = self.config.env_parameters or {}
         environment_class = self.config.env_constructor
@@ -101,7 +108,7 @@ class GymDuckiebotSimulator:
                         'pos': pos,
                         'rotate': np.rad2deg(angle),
                         'height': 0.12,
-                        'y_rot': 0,
+                        'y_rot': np.rad2deg(angle),
                         'static': False,
                         'optional': False}
 
@@ -112,12 +119,17 @@ class GymDuckiebotSimulator:
 
             self.npcs[data.robot_name] = obj
 
+
     def _set_pose(self, context):
         # TODO: check location
         e0 = self.env
 
         q = self.spawn_configuration.pose
+        v = self.spawn_configuration.velocity
+        c0 = q, v
 
+        p = get_DB18_nominal(delay=0.15)
+        self.state = p.initialize(c0=c0, t0=0)
         cur_pos, cur_angle = e0.weird_from_cartesian(q)
         q2 = e0.cartesian_from_weird(cur_pos, cur_angle)
         e0.cur_pos = cur_pos
@@ -199,7 +211,7 @@ class GymDuckiebotSimulator:
     def on_received_step(self, context: Context, data: Step):
         delta_time = data.until - self.current_time
         if delta_time > 0:
-            self.update_physics_and_observations(self.last_action, until=data.until, context=context)
+            self.update_physics_and_observations(until=data.until, context=context)
         else:
             context.warning(f'Already at time {data.until}')
 
@@ -207,7 +219,7 @@ class GymDuckiebotSimulator:
         self.reward_cumulative += d.reward * delta_time
         self.current_time = data.until
 
-    def update_physics_and_observations(self, last_action, until, context: Context):
+    def update_physics_and_observations(self, until, context: Context):
         # we are at self.current_time and need to update until "until"
         dt = self.config.camera_dt
         snapshots = list(get_snapshots(self.last_observations_time, self.current_time, until, dt))
@@ -220,17 +232,34 @@ class GymDuckiebotSimulator:
 
         for t1 in steps:
             delta_time = t1 - self.current_time
+
+            last_action = np.array([0.0, 0.0])
             self.env.update_physics(last_action, delta_time=delta_time)
+
+            self.state = self.state.integrate(delta_time, self.last_commands.wheels)
+            q = self.state.TSE2_from_state()[0]
+            cur_pos, cur_angle = self.env.weird_from_cartesian(q)
+            self.env.cur_pos = cur_pos
+            self.env.cur_angle = cur_angle
+
             self.current_time = t1
 
             if self.current_time - self.last_observations_time >= self.config.camera_dt:
                 self.update_observations()
 
-    def on_received_set_robot_commands(self, data: DB18SetRobotCommands):
-        wheels = data.commands.wheels
-        action = np.array([wheels.motor_left, wheels.motor_right])
-        action = np.clip(action, -1.0, +1.0)
-        self.last_action = action
+    def on_received_set_robot_commands(self, data: DB18SetRobotCommands, context: Context):
+        # wheels = data.commands.wheels
+        # action = np.array([wheels.motor_left, wheels.motor_right])
+        # action = np.clip(action, -1.0, +1.0)
+        # self.last_action = action
+        l, r = data.commands.wheels.motor_left,data.commands.wheels.motor_right
+
+        if max(math.fabs(l), math.fabs(r)) > 1:
+            msg = f'Received invalid PWM commands. They should be between -1 and +1.' \
+                  ' Received left = {l}, right = {r}.'
+            context.error(msg)
+            raise Exception(msg)
+        self.last_commands = data.commands
 
     def update_observations(self):
         obs = self.env.render_obs()
@@ -277,7 +306,7 @@ class GymDuckiebotSimulator:
         t = timestamp_from_seconds(self.current_time)
         ts = TimeSpec(time=t, frame=self.episode_name, clock=context.get_hostname())
         timing = TimingInfo(acquired={'state': ts})
-        context.write('robot_state', rs, timing=timing) #, with_schema=True)
+        context.write('robot_state', rs, timing=timing)  # , with_schema=True)
 
     def on_received_dump_state(self, context: Context):
         context.write('dump_state', StateDump(None))
