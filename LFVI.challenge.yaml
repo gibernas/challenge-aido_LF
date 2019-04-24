@@ -16,7 +16,7 @@ steps:
     title: Simulation step
     description: ""
 
-    timeout: 1200 # 20 minutes
+    timeout: 3600 # 1 hour
     evaluation_parameters:
       services:
         evaluator: !include comp_evaluator.yaml
