@@ -50,7 +50,7 @@ class GymDuckiebotSimulatorConfig:
     env_constructor: str = 'Simulator'
     env_parameters: dict = None
     camera_dt: float = 1 / 15.0
-    render_dt: float = 1 / (15.0 * 2)
+    render_dt: float = 1 / (15.0 * 5)
     minimum_physics_dt: float = 1 / 30.0
     blur_time: float = 0.1
 

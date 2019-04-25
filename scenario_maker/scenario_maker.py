@@ -4,11 +4,12 @@ from dataclasses import dataclass
 from typing import *
 
 import numpy as np
+import yaml
 
 import duckietown_world as dw
 import geometry as g
 from aido_schemas import protocol_scenario_maker, Scenario, ScenarioRobotSpec, RobotConfiguration, wrap_direct, Context
-from duckietown_world import list_maps, load_map
+from duckietown_world import list_maps
 from duckietown_world.world_duckietown.map_loading import _get_map_yaml
 from duckietown_world.world_duckietown.sampling_poses import sample_good_starting_pose
 
@@ -37,6 +38,14 @@ class MyState:
     scenarios_to_go: List[MyScenario]
 
 
+def update_map(yaml_data):
+    tiles = yaml_data['tiles']
+
+    for row in tiles:
+        for i in range(len(row)):
+            row[i] = row[i].replace('asphalt', 'floor')
+
+
 class SimScenarioMaker:
     config: MyConfig = MyConfig()
     state: MyState = MyState([])
@@ -51,9 +60,15 @@ class SimScenarioMaker:
                 msg = f'Cannot find map name "{map_name}, know {available}'
                 raise Exception(msg)
 
-            yaml_str: str = _get_map_yaml(map_name)
+            s: str = _get_map_yaml(map_name)
 
-            po = load_map(map_name)
+            # yaml_str = update_map(yaml_str)
+
+            yaml_data = yaml.load(s, Loader=yaml.SafeLoader)
+            update_map(yaml_data)
+            yaml_str = yaml.dump(yaml_data)
+
+            po = dw.construct_map(yaml_data)
 
             for i in range(self.config.scenarios_per_map):
                 scenario_name = f'{map_name}-{i}'
