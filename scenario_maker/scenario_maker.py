@@ -6,7 +6,7 @@ from typing import *
 import numpy as np
 
 import duckietown_world as dw
-import geometry
+import geometry as g
 from aido_schemas import protocol_scenario_maker, Scenario, ScenarioRobotSpec, RobotConfiguration, wrap_direct, Context
 from duckietown_world import list_maps, load_map
 from duckietown_world.world_duckietown.map_loading import _get_map_yaml
@@ -26,8 +26,8 @@ class MyConfig:
     scenarios_per_map: int = 1
     robots_npcs: int = 0
     robots_pcs: int = 1
-    theta_tol_deg: float = 30.0
-    dist_tol_m: float = 0.3
+    theta_tol_deg: float = 20.0
+    dist_tol_m: float = 0.05
     min_dist: float = 0.5
     only_straight: bool = True
 
@@ -61,7 +61,9 @@ class SimScenarioMaker:
                 nrobots = self.config.robots_npcs + self.config.robots_pcs
                 poses = sample_many_good_starting_poses(po, nrobots,
                                                         only_straight=self.config.only_straight,
-                                                        min_dist=self.config.min_dist)
+                                                        min_dist=self.config.min_dist,
+                                                        delta_theta_rad=np.deg2rad(self.config.theta_tol_deg),
+                                                        delta_y_m=self.config.dist_tol_m)
 
                 poses_pcs = poses[:self.config.robots_pcs]
                 poses_npcs = poses[self.config.robots_pcs:]
@@ -69,18 +71,18 @@ class SimScenarioMaker:
                 robots = {}
                 for i in range(self.config.robots_pcs):
                     pose = poses_pcs[i]
-                    vel = geometry.se2_from_linear_angular([0, 0], 0)
+                    vel = g.se2_from_linear_angular([0, 0], 0)
 
                     robot_name = 'ego' if i == 0 else "player%d" % i
                     configuration = RobotConfiguration(pose=pose, velocity=vel)
 
                     robots[robot_name] = ScenarioRobotSpec(description='Playable robot',
-                                                            playable=True,
-                                                            configuration=configuration)
+                                                           playable=True,
+                                                           configuration=configuration)
 
                 for i in range(self.config.robots_npcs):
                     pose = poses_npcs[i]
-                    vel = geometry.se2_from_linear_angular([0, 0], 0)
+                    vel = g.se2_from_linear_angular([0, 0], 0)
 
                     robot_name = "npc%d" % i
                     configuration = RobotConfiguration(pose=pose, velocity=vel)
@@ -110,7 +112,8 @@ class SimScenarioMaker:
         pass
 
 
-def sample_many_good_starting_poses(po: dw.PlacedObject, nrobots: int, only_straight: bool, min_dist: float) -> List[
+def sample_many_good_starting_poses(po: dw.PlacedObject, nrobots: int, only_straight: bool, min_dist: float,
+                                    delta_theta_rad: float, delta_y_m: float) -> List[
     np.ndarray]:
     poses = []
 
@@ -123,14 +126,19 @@ def sample_many_good_starting_poses(po: dw.PlacedObject, nrobots: int, only_stra
     while len(poses) < nrobots:
         pose = sample_good_starting_pose(po, only_straight=only_straight)
         if far_enough(pose):
+            theta = np.random.uniform(-delta_theta_rad, +delta_theta_rad)
+            y = np.random.uniform(-delta_y_m, + delta_y_m)
+            t = [0, y]
+            q = g.SE2_from_translation_angle(t, theta)
+            pose = g.SE2.multiply(pose, q)
             poses.append(pose)
     return poses
 
 
 def distance_poses(q1, q2):
-    SE2 = geometry.SE2
+    SE2 = g.SE2
     d = SE2.multiply(SE2.inverse(q1), q2)
-    t, _a = geometry.translation_angle_from_SE2(d)
+    t, _a = g.translation_angle_from_SE2(d)
     return np.linalg.norm(t)
 
 

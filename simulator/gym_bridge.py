@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import math
+import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import *
 
@@ -48,7 +50,9 @@ class GymDuckiebotSimulatorConfig:
     env_constructor: str = 'Simulator'
     env_parameters: dict = None
     camera_dt: float = 1 / 15.0
+    render_dt: float = 1 / (15.0 * 2)
     minimum_physics_dt: float = 1 / 30.0
+    blur_time: float = 0.1
 
 
 class GymDuckiebotSimulator:
@@ -57,11 +61,6 @@ class GymDuckiebotSimulator:
     current_time: float
     reward_cumulative: float
     episode_name: str
-
-    #
-    # npcs: dict
-    # robot_name: str
-    # spawn_configuration: Any
 
     def init(self):
         env_parameters = self.config.env_parameters or {}
@@ -118,7 +117,6 @@ class GymDuckiebotSimulator:
                                ROBOT_WIDTH, ROBOT_LENGTH)
 
             self.npcs[data.robot_name] = obj
-
 
     def _set_pose(self, context):
         # TODO: check location
@@ -204,9 +202,14 @@ class GymDuckiebotSimulator:
             self.env.objects.append(obj)
 
         self.last_observations_time = -100.0
+        self.last_render_time = -100
+
+        self.render_timestamps = []
+        self.render_observations = []
         self.last_observations = None
 
-        self.update_observations()
+        self.render(context)
+        self.update_observations(self.config.blur_time, context)
 
     def on_received_step(self, context: Context, data: Step):
         delta_time = data.until - self.current_time
@@ -221,8 +224,9 @@ class GymDuckiebotSimulator:
 
     def update_physics_and_observations(self, until, context: Context):
         # we are at self.current_time and need to update until "until"
-        dt = self.config.camera_dt
-        snapshots = list(get_snapshots(self.last_observations_time, self.current_time, until, dt))
+        sensor_dt = self.config.camera_dt
+        render_dt = self.config.render_dt
+        snapshots = list(get_snapshots(self.last_observations_time, self.current_time, until, render_dt))
 
         steps = snapshots + [until]
         # context.info(f'current time: {self.current_time}')
@@ -244,30 +248,56 @@ class GymDuckiebotSimulator:
 
             self.current_time = t1
 
-            if self.current_time - self.last_observations_time >= self.config.camera_dt:
-                self.update_observations()
+            if self.current_time - self.last_render_time > render_dt:
+                self.render(context)
+            if self.current_time - self.last_observations_time >= sensor_dt:
+                self.update_observations(self.config.blur_time, context)
 
-    def on_received_set_robot_commands(self, data: DB18SetRobotCommands, context: Context):
-        # wheels = data.commands.wheels
-        # action = np.array([wheels.motor_left, wheels.motor_right])
-        # action = np.clip(action, -1.0, +1.0)
-        # self.last_action = action
-        l, r = data.commands.wheels.motor_left,data.commands.wheels.motor_right
+    def render(self, context: Context):
+        context.info(f'render() at {self.current_time}')
 
-        if max(math.fabs(l), math.fabs(r)) > 1:
-            msg = f'Received invalid PWM commands. They should be between -1 and +1.' \
-                  ' Received left = {l}, right = {r}.'
-            context.error(msg)
-            raise Exception(msg)
-        self.last_commands = data.commands
+        with timeit('render_obs()', context):
+            obs = self.env.render_obs()
+        # context.info(f'render {obs.shape} {obs.dtype}')
+        self.render_observations.append(obs)
+        self.render_timestamps.append(self.current_time)
+        self.last_render_time = self.current_time
 
-    def update_observations(self):
-        obs = self.env.render_obs()
+    def update_observations(self, blur_time: float, context: Context):
+        context.info(f'update_observations() at {self.current_time}')
+        assert self.render_observations
+
+        to_average = []
+        n = len(self.render_observations)
+        # context.info(str(self.render_timestamps))
+        # context.info(f'now {self.current_time}')
+        for i in range(n):
+            ti = self.render_timestamps[i]
+            if math.fabs(self.current_time - ti) < blur_time:
+                to_average.append(self.render_observations[i])
+
+        obs0 = to_average[0].astype('float32')
+        context.info(str(obs0.shape))
+        for obs in to_average[1:]:
+            obs0 += obs
+        obs = obs0 / len(to_average)
+        obs = obs.astype('uint8')
+        # context.info(f'update {obs.shape} {obs.dtype}')
         jpg_data = rgb2jpg(obs)
         camera = JPGImage(jpg_data)
         obs = Duckiebot1Observations(camera)
         self.ro = DB18RobotObservations(self.robot_name, self.current_time, obs)
         self.last_observations_time = self.current_time
+
+    def on_received_set_robot_commands(self, data: DB18SetRobotCommands, context: Context):
+        l, r = data.commands.wheels.motor_left, data.commands.wheels.motor_right
+
+        if max(math.fabs(l), math.fabs(r)) > 1:
+            msg = f'Received invalid PWM commands. They should be between -1 and +1.' \
+                ' Received left = {l}, right = {r}.'
+            context.error(msg)
+            raise Exception(msg)
+        self.last_commands = data.commands
 
     def on_received_get_robot_observations(self, context: Context):
         # timing information
@@ -335,6 +365,21 @@ def rgb2jpg(rgb: np.ndarray) -> bytes:
     compress = cv2.imencode('.jpg', bgr)[1]
     jpg_data = np.array(compress).tostring()
     return jpg_data
+
+
+@contextmanager
+def timeit(s, context, min_warn=0.01, enabled=True):
+    t0 = time.time()
+    yield
+
+    if not enabled:
+        return
+    t1 = time.time()
+
+    delta = t1 - t0
+    msg = 'timeit: %d ms for %s' % ((t1 - t0) * 1000, s)
+    if delta > min_warn:
+        context.info(msg)
 
 
 def main():

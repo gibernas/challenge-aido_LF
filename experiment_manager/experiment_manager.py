@@ -50,6 +50,7 @@ class MyConfig:
     timeout_initialization: int
     timeout_regular: int
 
+
 def main(cie, log_dir, attempts):
     config_ = env_as_yaml('experiment_manager_parameters')
     logger.info('parameters:\n\n%s' % config_)
@@ -69,8 +70,6 @@ def main(cie, log_dir, attempts):
 
     # then check compatibility
     # so that everything fails gracefully in case of error
-
-
 
     sm_ci._get_node_protocol(timeout=config.timeout_initialization)
     sim_ci._get_node_protocol(timeout=config.timeout_initialization)
@@ -148,7 +147,7 @@ def main(cie, log_dir, attempts):
             logger.info('Now creating visualization and analyzing statistics.')
             logger.warning('This might take a LONG time.')
 
-            with notice_thread("Visualization", 5):
+            with notice_thread("Visualization", 2):
                 evaluated = read_and_draw(fn, dn)
             logger.info('Finally visualization is done.')
 
@@ -170,7 +169,8 @@ def main(cie, log_dir, attempts):
                 episodes.pop(0)
 
                 out_video = os.path.join(dn, 'camera.mp4')
-                make_video1(fn, out_video)
+                with notice_thread("Make video", 2):
+                    make_video1(fn, out_video)
 
                 os.rename(dn, dn_final)
             else:
@@ -203,6 +203,7 @@ def main(cie, log_dir, attempts):
 @contextmanager
 def notice_thread(msg, interval):
     stop = False
+    t0 = time.time()
     t = Thread(target=notice_thread_child, args=(msg, interval, lambda: stop))
     t.start()
     try:
@@ -210,6 +211,9 @@ def notice_thread(msg, interval):
         yield
 
     finally:
+        t1 = time.time()
+        delta = t1 - t0
+        logger.info(f'{msg}: took {delta} seconds.')
         stop = True
         logger.info('waiting for thread to finish')
         t.join()
@@ -221,7 +225,7 @@ def notice_thread_child(msg, interval, stop_condition):
         delta = time.time() - t0
         logger.info(msg + '(running for %d seconds)' % delta)
         time.sleep(interval)
-    logger.info('notice_thread_child finishes')
+    # logger.info('notice_thread_child finishes')
 
 
 def run_episode(sim_ci: ComponentInterface,
