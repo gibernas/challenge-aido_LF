@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import math
+import random
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -50,9 +51,9 @@ class GymDuckiebotSimulatorConfig:
     env_constructor: str = 'Simulator'
     env_parameters: dict = None
     camera_dt: float = 1 / 15.0
-    render_dt: float = 1 / (15.0 * 5)
+    render_dt: float = 1 / (15.0 * 7)
     minimum_physics_dt: float = 1 / 30.0
-    blur_time: float = 0.1
+    blur_time: float = 0.05
 
 
 class GymDuckiebotSimulator:
@@ -78,7 +79,8 @@ class GymDuckiebotSimulator:
         self.env = klass(**env_parameters)
 
     def on_received_seed(self, context: Context, data: int):
-        context.info(f'seed({data})')
+        random.seed(data)
+        np.random.seed(data)
 
     def on_received_clear(self):
         self.robot_name = None
