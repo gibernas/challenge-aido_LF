@@ -36,7 +36,7 @@ steps:
             AIDONODE_CONFIG: |
               maps:
               - ETHZ_autolab_technical_track
-              scenarios_per_map: 5
+              scenarios_per_map: 15
               robots_npcs: 4
           build:
             context: ./scenario_maker
