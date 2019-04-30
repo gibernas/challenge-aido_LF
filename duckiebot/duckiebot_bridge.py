@@ -22,7 +22,6 @@ class DuckiebotBridge(object):
             if not self.client.initialized:
                 continue
             np_arr = np.fromstring(self.client.image, np.uint8)
-            #image_np = cv2.imdecode(np_arr, cv2.CV_LOAD_IMAGE_COLOR)
             data = np_arr.tostring()
 
             obs = {u'camera': {u'jpg_data': data}}

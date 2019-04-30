@@ -23,4 +23,4 @@ RUN pip install pillow --user --upgrade
 RUN /bin/bash -c "export PYTHONPATH="/usr/local/lib/python2.7/dist-packages:$PYTHONPATH""
 
 
-CMD ["python", "duckiebot_bridge.py"]
+CMD ["python", "-u", "duckiebot_bridge.py"]
