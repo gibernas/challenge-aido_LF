@@ -20,10 +20,14 @@ class ROSClient(object):
 
         # Initializes the node
         rospy.init_node('ROSClient')
-
+        rospy.on_shutdown(self.on_shutdown)
+        
         self.r = rospy.Rate(15)
 
-
+    def on_shutdown(self):
+        commands = {u'motor_right': 0.0, u'motor_left': 0.0}
+        self.send_commands(commands)
+        
     def _cam_cb(self, msg):
         """
         Callback to listen to last outputted camera image and store it
