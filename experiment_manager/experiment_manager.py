@@ -417,7 +417,9 @@ import duckietown_challenges as dc
 
 def wrap(cie: dc.ChallengeInterfaceEvaluator):
     d = cie.get_tmp_dir()
+
     logdir = os.path.join(d, 'episodes')
+
     attempts = os.path.join(d, 'attempts')
     if not os.path.exists(logdir):
         os.makedirs(logdir)
