@@ -1,13 +1,12 @@
-challenge: aido2-LFVI-sim-validation
+challenge: aido2-LFVI-sim-validation-offseason
 
 title: "LFVI 🚗🚗🚦 - Lane following + Vehicles + Intersections (simulation 👾, validation 🏋) "
-tags: [visible, ml-validation, aido2, aido2-embodied, LFVI, v4, simulation]
+tags: [visible, ml-validation, aido2-offseason, aido2-embodied, LFVI, v4, simulation]
 description: |
 
 protocol: aido2_db18_agent-z2
-
-date-open: 2019-04-10
-date-close: 2019-05-21T13:00Z
+date-open: 2019-05-29
+date-close: 2019-09-01
 
 scoring: !include scoring.yaml
 
