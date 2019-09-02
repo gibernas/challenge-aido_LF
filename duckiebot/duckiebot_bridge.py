@@ -15,7 +15,7 @@ class DuckiebotBridge(object):
 
         AIDONODE_DATA_IN = '/fifos/agent-in'
         AIDONODE_DATA_OUT = '/fifos/agent-out'
-        self.ci = ComponentInterface(AIDONODE_DATA_IN, AIDONODE_DATA_OUT, 'agent', timeout=5)
+        self.ci = ComponentInterface(AIDONODE_DATA_IN, AIDONODE_DATA_OUT, 'agent', timeout=30)
         self.ci.write_topic_and_expect_zero(u'seed', 32)
         self.ci.write_topic_and_expect_zero(u'episode_start', {u'episode_name': u'episode'})
         self.client=ROSClient()
