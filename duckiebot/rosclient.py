@@ -15,11 +15,9 @@ class ROSClient(object):
         # TODO not sure about this
         self.vehicle = os.getenv('HOSTNAME')
 
-        self.cam_sub = rospy.Subscriber('/{}/camera_node/image/compressed'.format(
-            self.vehicle), CompressedImage, self._cam_cb)
-
-        self.cmd_pub = rospy.Publisher('/{}/wheels_driver_node/wheels_cmd'.format(
-            self.vehicle), WheelsCmdStamped, queue_size=10)
+        self.nsent_commands = 0
+        self.nreceived_images = 0
+        self.shutdown = False
 
         self.initialized = False
 
@@ -31,10 +29,17 @@ class ROSClient(object):
         msg = 'ROSClient initialized.'
         logger.info(msg)
 
-        self.nsent_commands = 0
-        self.nreceived_images = 0
+        self.cmd_pub = rospy.Publisher('/{}/wheels_driver_node/wheels_cmd'.format(
+            self.vehicle), WheelsCmdStamped, queue_size=10)
+        logger.info('publisher created')
+
+        self.cam_sub = rospy.Subscriber('/{}/camera_node/image/compressed'.format(
+            self.vehicle), CompressedImage, self._cam_cb)
+
+        logger.info('subscriber created')
 
     def on_shutdown(self):
+        self.shutdown = True
         msg = 'ROSClient on_shutdown will send 0,0 command now.'
         logger.info(msg)
         commands = {u'motor_right': 0.0, u'motor_left': 0.0}
