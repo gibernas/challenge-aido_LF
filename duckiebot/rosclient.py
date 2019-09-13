@@ -1,7 +1,12 @@
-import rospy
-from sensor_msgs.msg import CompressedImage, CameraInfo
-from duckietown_msgs.msg import Twist2DStamped, WheelsCmdStamped
+import logging
 import os
+
+import rospy
+from duckietown_msgs.msg import WheelsCmdStamped
+from sensor_msgs.msg import CompressedImage
+
+logger = logging.getLogger('ROSClient')
+logger.setLevel(logging.DEBUG)
 
 
 class ROSClient(object):
@@ -11,30 +16,42 @@ class ROSClient(object):
         self.vehicle = os.getenv('HOSTNAME')
 
         self.cam_sub = rospy.Subscriber('/{}/camera_node/image/compressed'.format(
-            self.vehicle),CompressedImage, self._cam_cb)
+            self.vehicle), CompressedImage, self._cam_cb)
 
         self.cmd_pub = rospy.Publisher('/{}/wheels_driver_node/wheels_cmd'.format(
             self.vehicle), WheelsCmdStamped, queue_size=10)
 
-        self.initialized=False
+        self.initialized = False
 
         # Initializes the node
         rospy.init_node('ROSClient')
         rospy.on_shutdown(self.on_shutdown)
-        
+
         self.r = rospy.Rate(15)
+        msg = 'ROSClient initialized.'
+        logger.info(msg)
+
+        self.nsent_commands = 0
+        self.nreceived_images = 0
 
     def on_shutdown(self):
+        msg = 'ROSClient on_shutdown will send 0,0 command now.'
+        logger.info(msg)
         commands = {u'motor_right': 0.0, u'motor_left': 0.0}
         self.send_commands(commands)
-        
+
     def _cam_cb(self, msg):
         """
         Callback to listen to last outputted camera image and store it
         """
         self.image = msg.data
-        self.initialized=True
 
+        self.initialized = True
+
+        if self.nreceived_images == 0:
+            msg = 'ROSClient received first camera image.'
+            logger.info(msg)
+        self.nreceived_images += 1
 
     def send_commands(self, cmds):
         """
@@ -45,5 +62,10 @@ class ROSClient(object):
         cmd_msg.header.stamp.secs = time.secs
         cmd_msg.header.stamp.nsecs = time.nsecs
         cmd_msg.vel_right = cmds[u'motor_right']
-        cmd_msg.vel_left  = cmds[u'motor_left']
+        cmd_msg.vel_left = cmds[u'motor_left']
+        if self.nsent_commands == 0:
+            msg = 'ROSClient publishing first commands.'
+            logger.info(msg)
+
         self.cmd_pub.publish(cmd_msg)
+        self.nsent_commands += 1
