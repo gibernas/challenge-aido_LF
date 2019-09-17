@@ -11,3 +11,4 @@ sq.db
 challenges-dir
 evaluator.log
 output-local-evaluation
+minimal_agent/output
