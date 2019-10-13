@@ -8,23 +8,24 @@ import traceback
 from contextlib import contextmanager
 from dataclasses import dataclass
 from threading import Thread
-from typing import *
+from typing import cast, Dict, Iterator, List
 
 import numpy as np
 import yaml
 
-from aido_schemas import EpisodeStart, protocol_agent, SetMap, SpawnRobot, Step, protocol_simulator, RobotObservations, \
-    SetRobotCommands, RobotPerformance, RobotState, SimulationState, Scenario, protocol_scenario_maker
+from aido_schemas import (EpisodeStart, protocol_agent, protocol_scenario_maker, protocol_simulator, RobotObservations,
+                          RobotPerformance, RobotState, Scenario, SetMap, SetRobotCommands, SimulationState, SpawnRobot,
+                          Step)
 from aido_schemas.utils import TimeTracker
 from aido_schemas.utils_drawing import read_and_draw
 from aido_schemas.utils_video import make_video1
 from duckietown_world.rules import RuleEvaluationResult
 from duckietown_world.rules.rule import EvaluatedMetric
 from zuper_commons.text import indent
-from zuper_json.ipce import object_to_ipce, ipce_to_object
-from zuper_json.subcheck import can_be_used_as
+from zuper_ipce import ipce_from_object, object_from_ipce
 from zuper_nodes.structures import RemoteNodeAborted
 from zuper_nodes_wrapper.wrapper_outside import ComponentInterface, MsgReceived
+from zuper_typing.subcheck import can_be_used_as2
 
 logging.basicConfig()
 logger = logging.getLogger('launcher')
@@ -54,7 +55,7 @@ class MyConfig:
 def main(cie, log_dir, attempts):
     config_ = env_as_yaml('experiment_manager_parameters')
     logger.info('parameters:\n\n%s' % config_)
-    config = cast(MyConfig, ipce_to_object(config_, {}, expect_type=MyConfig))
+    config = cast(MyConfig, object_from_ipce(config_, MyConfig))
 
     # first open all fifos
     agent_ci = ComponentInterface(config.agent_in, config.agent_out,
@@ -330,7 +331,7 @@ def run_episode(sim_ci: ComponentInterface,
 
 
 def log_timing_info(tt, sim_ci: ComponentInterface):
-    ipce = object_to_ipce(tt, {}, with_schema=True)
+    ipce = ipce_from_object(tt)
     msg = {'compat': ['aido2'], 'topic': 'timing_information', 'data': ipce}
     j = sim_ci._serialize(msg)
     sim_ci._cc.write(j)
@@ -358,14 +359,14 @@ def check_compatibility_between_agent_and_sim(agent_ci: ComponentInterface, sim_
     type_commands_agent = agent_ci.node_protocol.outputs['commands']
     logger.info(f'Agent provides commands {type_commands_agent}')
 
-    can_be_obs, why = can_be_used_as(type_observations_sim, type_observations_agent)
-    if not can_be_obs:
-        msg = 'Observations mismatch: %s' % why
+    r = can_be_used_as2(type_observations_sim, type_observations_agent)
+    if not r.result:
+        msg = 'Observations mismatch: %s' % r
         logger.error(msg)
         raise Exception(msg)
-    can_be_cmd, why = can_be_used_as(type_commands_agent, type_commands_sim)
-    if not can_be_cmd:
-        msg = 'Commands mismatch: %s' % why
+    r = can_be_used_as2(type_commands_agent, type_commands_sim)
+    if not r:
+        msg = 'Commands mismatch: %s' % r
         logger.error(msg)
         raise Exception(msg)
 

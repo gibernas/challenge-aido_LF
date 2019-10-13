@@ -1,4 +1,4 @@
-challenge: aido2-LF-sim-validation
+challenge: aido3-LF-sim-validation
 
 title: "LF 🚗 - Lane following  (simulation 👾, validation 🏋)"
 tags: [visible, ml-validation, aido2, aido2-embodied, LF, v4, simulation]
@@ -7,8 +7,9 @@ description: |
 
 protocol: aido2_db18_agent-z2
 
-date-open: 2019-04-10
-date-close: 2019-05-21T13:00Z
+date-open: 2019-10-10
+date-close: 2019-12-12T13:00Z
+
 
 scoring: !include scoring.yaml
 
@@ -35,4 +36,3 @@ steps:
               robots_npcs: 0
           build:
             context: ./scenario_maker
-

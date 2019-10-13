@@ -1,4 +1,4 @@
-FROM duckietown/gym-duckietown-server-python3:aido2
+FROM duckietown/gym-duckietown-server-python3:daffy
 
 
 WORKDIR /project

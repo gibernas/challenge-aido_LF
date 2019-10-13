@@ -1,15 +1,15 @@
-challenge: aido2-LF-sim-testing
+challenge: aido3-LF-sim-testing
 
 title: "LF 🚗 - Lane following (simulation 👾, testing 🥇)"
-tags: [visible, ml-testing, aido2, aido2-embodied, LF, v4, simulation]
+tags: [visible, ml-testing, aido3, aido3-embodied, LF, v4, simulation]
 description: |
   Lane following challenge.
 
 protocol: aido2_db18_agent-z2
 
 
-date-open: 2019-04-10
-date-close: 2019-05-21T13:00Z
+date-open: 2019-10-10
+date-close: 2019-12-12T13:00Z
 
 scoring: !include scoring.yaml
 
@@ -36,4 +36,3 @@ steps:
               robots_npcs: 0
           build:
             context: ./scenario_maker
-
