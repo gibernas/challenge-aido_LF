@@ -70,8 +70,8 @@ class SimScenarioMaker:
 
             po = dw.construct_map(yaml_data)
 
-            for i in range(self.config.scenarios_per_map):
-                scenario_name = f'{map_name}-{i}'
+            for imap in range(self.config.scenarios_per_map):
+                scenario_name = f'{map_name}-{imap}'
 
                 nrobots = self.config.robots_npcs + self.config.robots_pcs
                 poses = sample_many_good_starting_poses(po, nrobots,

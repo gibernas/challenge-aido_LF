@@ -15,7 +15,7 @@ import yaml
 
 from aido_schemas import (EpisodeStart, protocol_agent, protocol_scenario_maker, protocol_simulator, RobotObservations,
                           RobotPerformance, RobotState, Scenario, SetMap, SetRobotCommands, SimulationState, SpawnRobot,
-                          Step)
+                          Step, GetRobotState, GetRobotObservations)
 from aido_schemas.utils import TimeTracker
 from aido_schemas.utils_drawing import read_and_draw
 from aido_schemas.utils_video import make_video1
@@ -269,15 +269,15 @@ def run_episode(sim_ci: ComponentInterface,
             break
 
         tt = TimeTracker(steps)
-
+        t_effective = current_sim_time
         for robot_name in playable_robots:
             agent = playable_robots2agent[robot_name]
 
             # have this first, so we have something for t = 0
             with tt.measure(f'sim_compute_robot_state-{robot_name}'):
-
+                grs = GetRobotState(robot_name=robot_name, t_effective=t_effective)
                 _recv: MsgReceived[RobotState] = \
-                    sim_ci.write_topic_and_expect('get_robot_state', robot_name,
+                    sim_ci.write_topic_and_expect('get_robot_state', grs,
                                                   expect='robot_state')
 
             with tt.measure(f'sim_compute_performance-{robot_name}'):
@@ -288,8 +288,9 @@ def run_episode(sim_ci: ComponentInterface,
                                                   expect='robot_performance')
 
             with tt.measure(f'sim_render-{robot_name}'):
+                gro = GetRobotObservations(robot_name=robot_name, t_effective=t_effective)
                 recv: MsgReceived[RobotObservations] = \
-                    sim_ci.write_topic_and_expect('get_robot_observations', robot_name,
+                    sim_ci.write_topic_and_expect('get_robot_observations', gro,
                                                   expect='robot_observations')
 
             with tt.measure(f'agent_compute-{robot_name}'):
@@ -302,13 +303,14 @@ def run_episode(sim_ci: ComponentInterface,
                     raise dc.InvalidSubmission(msg) from e
 
             with tt.measure('set_robot_commands'):
-                commands = SetRobotCommands(robot_name=robot_name, commands=r.data, t_effective=current_sim_time)
+                commands = SetRobotCommands(robot_name=robot_name, commands=r.data, t_effective=t_effective)
                 sim_ci.write_topic_and_expect_zero('set_robot_commands', commands)
 
         for robot_name in not_playable_robots:
             with tt.measure(f'sim_compute_robot_state-{robot_name}'):
+                rs = GetRobotState(robot_name=robot_name, t_effective=t_effective)
                 _recv: MsgReceived[RobotState] = \
-                    sim_ci.write_topic_and_expect('get_robot_state', robot_name,
+                    sim_ci.write_topic_and_expect('get_robot_state', rs,
                                                   expect='robot_state')
 
         with tt.measure('sim_compute_sim_state'):

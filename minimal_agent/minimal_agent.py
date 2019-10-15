@@ -58,7 +58,7 @@ def jpg2rgb(image_data: bytes) -> np.ndarray:
     return data
 
 
-def main():
+def main() -> None:
     node = MinimalAgent()
     protocol = protocol_agent_duckiebot1
     wrap_direct(node=node, protocol=protocol)

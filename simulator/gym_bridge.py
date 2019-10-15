@@ -4,22 +4,23 @@ import random
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import *
+from typing import Any, Dict, Iterator, List, Optional
 
 import numpy as np
 import yaml
 
 import geometry
-from aido_schemas import wrap_direct, Context, PWMCommands, JPGImage, Duckiebot1Observations, EpisodeStart, \
-    DB18RobotObservations, DB18SetRobotCommands, SetMap, SpawnRobot, RobotName, StateDump, Step, \
-    RobotInterfaceDescription, RobotState, RobotPerformance, Metric, PerformanceMetrics, SimulationState, \
-    protocol_simulator_duckiebot1
+from aido_schemas import (Context, DB18RobotObservations, DB18SetRobotCommands, Duckiebot1Observations, EpisodeStart,
+                          GetRobotObservations, GetRobotState, JPGImage, Metric, PerformanceMetrics,
+                          protocol_simulator_duckiebot1, PWMCommands, RobotConfiguration, RobotInterfaceDescription,
+                          RobotName, RobotPerformance, RobotState, SetMap, SimulationState, SpawnRobot, StateDump, Step,
+                          wrap_direct)
 from duckietown_world.world_duckietown.pwm_dynamics import get_DB18_nominal
 from gym_duckietown.envs import DuckietownEnv
 from gym_duckietown.objects import DuckiebotObj
-from gym_duckietown.simulator import Simulator, NotInLane, SAFETY_RAD_MULT, WHEEL_DIST, ROBOT_WIDTH, ROBOT_LENGTH, \
-    ObjMesh
-from zuper_nodes import timestamp_from_seconds, TimeSpec, TimingInfo
+from gym_duckietown.simulator import (NotInLane, ObjMesh, ROBOT_LENGTH, ROBOT_WIDTH, SAFETY_RAD_MULT, Simulator,
+                                      WHEEL_DIST)
+from zuper_nodes import TimeSpec, timestamp_from_seconds, TimingInfo
 
 
 @dataclass
@@ -62,6 +63,21 @@ class GymDuckiebotSimulator:
     current_time: float
     reward_cumulative: float
     episode_name: str
+    env: Simulator
+
+    robot_name: Optional[RobotName]
+    spawn_pose: Any
+    npcs: Dict[RobotName, Any]
+    spawn_configuration: RobotConfiguration
+
+    last_commands: np.array
+    last_action: np.array  # 2
+    last_render_time: float
+    render_timestamps: List[float]
+    render_observations: List[np.array]
+    last_observations: np.array
+    last_observations_time: float
+    ro: DB18RobotObservations
 
     def init(self):
         env_parameters = self.config.env_parameters or {}
@@ -104,14 +120,16 @@ class GymDuckiebotSimulator:
 
             mesh = ObjMesh.get('duckiebot')
 
-            obj_desc = {'kind': 'duckiebot',
-                        'mesh': mesh,
-                        'pos': pos,
-                        'rotate': np.rad2deg(angle),
-                        'height': 0.12,
-                        'y_rot': np.rad2deg(angle),
-                        'static': False,
-                        'optional': False}
+            obj_desc = {
+                'kind': 'duckiebot',
+                'mesh': mesh,
+                'pos': pos,
+                'rotate': np.rad2deg(angle),
+                'height': 0.12,
+                'y_rot': np.rad2deg(angle),
+                'static': False,
+                'optional': False
+            }
 
             obj_desc['scale'] = obj_desc['height'] / mesh.max_coords[1]
 
@@ -183,14 +201,14 @@ class GymDuckiebotSimulator:
         metrics['survival_time'] = Metric(higher_is_better=True, cumulative_value=self.current_time,
                                           description="Survival time.")
         metrics['reward'] = Metric(higher_is_better=True, cumulative_value=self.reward_cumulative,
-                                   description="Cumulative reward.")
+                                   description="Cumulative agent reward.")
         pm = PerformanceMetrics(metrics)
         rid = RobotPerformance(robot_name=data, t_effective=self.current_time, performance=pm)
         context.write('robot_performance', rid)
 
     def on_received_episode_start(self, context: Context, data: EpisodeStart):
         self.current_time = 0.0
-        self.reward_cumulative = 0
+        self.reward_cumulative = 0.0
         self.episode_name = data.episode_name
         self.last_action = np.array([0.0, 0.0])
         try:
@@ -204,7 +222,7 @@ class GymDuckiebotSimulator:
             self.env.objects.append(obj)
 
         self.last_observations_time = -100.0
-        self.last_render_time = -100
+        self.last_render_time = -100.0
 
         self.render_timestamps = []
         self.render_observations = []
@@ -256,9 +274,9 @@ class GymDuckiebotSimulator:
                 self.update_observations(self.config.blur_time, context)
 
     def render(self, context: Context):
-        context.info(f'render() at {self.current_time}')
+        # context.info(f'render() at {self.current_time}')
 
-        with timeit('render_obs()', context):
+        with timeit('render_obs()', context, enabled=False):
             obs = self.env.render_obs()
         # context.info(f'render {obs.shape} {obs.dtype}')
         self.render_observations.append(obs)
@@ -296,30 +314,32 @@ class GymDuckiebotSimulator:
 
         if max(math.fabs(l), math.fabs(r)) > 1:
             msg = f'Received invalid PWM commands. They should be between -1 and +1.' \
-                ' Received left = {l}, right = {r}.'
+                  ' Received left = {l}, right = {r}.'
             context.error(msg)
             raise Exception(msg)
         self.last_commands = data.commands
 
-    def on_received_get_robot_observations(self, context: Context):
+    def on_received_get_robot_observations(self, context: Context, data: GetRobotObservations):
+        _ = data
         # timing information
         t = timestamp_from_seconds(self.last_observations_time)
         ts = TimeSpec(time=t, frame=self.episode_name, clock=context.get_hostname())
         timing = TimingInfo(acquired={'image': ts})
         context.write('robot_observations', self.ro, with_schema=True, timing=timing)
 
-    def on_received_get_robot_state(self, context: Context, data: RobotName):
+    def on_received_get_robot_state(self, context: Context, data: GetRobotState):
+        robot_name = data.robot_name
         env = self.env
         speed = env.speed
         omega = 0.0  # XXX
-        if data == self.robot_name:
+        if robot_name == self.robot_name:
             q = env.cartesian_from_weird(env.cur_pos, env.cur_angle)
             v = geometry.se2_from_linear_angular([speed, 0], omega)
             state = MyRobotInfo(pose=q,
                                 velocity=v,
                                 last_action=env.last_action,
                                 wheels_velocities=env.wheelVels)
-            rs = MyRobotState(robot_name=data,
+            rs = MyRobotState(robot_name=robot_name,
                               t_effective=self.current_time,
                               state=state)
         else:
@@ -331,7 +351,7 @@ class GymDuckiebotSimulator:
                                 velocity=v,
                                 last_action=np.array([0, 0]),
                                 wheels_velocities=np.array([0, 0]))
-            rs = MyRobotState(robot_name=data,
+            rs = MyRobotState(robot_name=robot_name,
                               t_effective=self.current_time,
                               state=state)
         # timing information
@@ -352,7 +372,7 @@ class GymDuckiebotSimulator:
         context.write('sim_state', sim_state)
 
 
-def get_snapshots(last_obs_time, current_time, until, dt) -> Iterator[float]:
+def get_snapshots(last_obs_time: float, current_time: float, until: float, dt: float) -> Iterator[float]:
     t = last_obs_time + dt
     while t < until:
         if t > current_time:
