@@ -1,7 +1,7 @@
 challenge: aido3-LFV-sim-testing
 
 title: "LFV 🚗🚗 - Lane following + Vehicles (simulation 👾, testing 🥇)"
-tags: [visible, ml-testing, aido2, aido2-embodied, LFV, v4, simulation]
+tags: [visible, ml-testing, aido3, aido3-embodied, LFV, v4, simulation]
 description: |
   Lane following challenge.
 

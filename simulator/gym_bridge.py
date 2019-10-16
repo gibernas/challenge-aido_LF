@@ -67,7 +67,7 @@ class GymDuckiebotSimulator:
 
     robot_name: Optional[RobotName]
     spawn_pose: Any
-    npcs: Dict[RobotName, Any]
+    npcs: Dict[RobotName, DuckiebotObj]
     spawn_configuration: RobotConfiguration
 
     last_commands: np.array
@@ -343,7 +343,7 @@ class GymDuckiebotSimulator:
                               t_effective=self.current_time,
                               state=state)
         else:
-            obj: DuckiebotObj = self.npcs[data]
+            obj: DuckiebotObj = self.npcs[robot_name]
             q = env.cartesian_from_weird(obj.pos, obj.angle)
             # FIXME: how to get velocity?
             v = geometry.se2_from_linear_angular([0, 0], 0)
