@@ -1,5 +1,5 @@
 
-aido-protocols-daffy>=5.0.17
+aido-protocols-daffy>=5.0.18
 duckietown-world-daffy>=5.0.8
 zuper-typing-z5>=5.0.12
 zuper-ipce-z5>=5.1.0
