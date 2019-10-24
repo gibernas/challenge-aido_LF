@@ -1,10 +1,10 @@
 
-aido-protocols-daffy>=5.0.16
-duckietown-world-daffy>=5.0.6
-zuper-typing-z5>=5.0.11
-zuper-ipce-z5>=5.0.7
-zuper-nodes-z5>=5.0.7
-duckietown-gym-daffy>=5.0.4
+aido-protocols-daffy>=5.0.17
+duckietown-world-daffy>=5.0.8
+zuper-typing-z5>=5.0.12
+zuper-ipce-z5>=5.1.0
+zuper-nodes-z5>=5.0.8
+duckietown-gym-daffy>=5.0.6
 
 
 numpy==1.16.2

@@ -314,7 +314,7 @@ class GymDuckiebotSimulator:
 
         if max(math.fabs(l), math.fabs(r)) > 1:
             msg = f'Received invalid PWM commands. They should be between -1 and +1.' \
-                  ' Received left = {l}, right = {r}.'
+                  f' Received left = {l!r}, right = {r!r}.'
             context.error(msg)
             raise Exception(msg)
         self.last_commands = data.commands
