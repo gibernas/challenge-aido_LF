@@ -6,10 +6,28 @@ description: |
 
 protocol: aido2_db18_agent-z2
 
-date-open: 2019-10-10
+date-open: 2019-10-10T00:00Z
 date-close: 2019-12-12T13:00Z
 
 scoring: !include scoring.yaml
+
+dependencies:
+  aido3-LFV-sim-validation:
+    description: The submission must first pass LFV testing.
+    min_threshold: 2.0
+    scores:
+      good_enough:
+        description: Must have moved at least 20cm.
+        importance: 1.0
+        score_name: driven_lanedir_consec_median
+        score_min: 0.2
+        score_max: 10000.0
+    comparisons:
+      better-than-bea-straight:
+        description: Must be do better than the straight solution.
+        importance: 1.0
+        username: BeaBaselines
+        sub_label: 'straight'
 
 steps:
   step1-simulation:
@@ -34,7 +52,7 @@ steps:
             AIDONODE_CONFIG: |
               maps:
               - udem1
-              scenarios_per_map: 5
+              scenarios_per_map: 1
               robots_npcs: 4
           build:
             context: ./scenario_maker

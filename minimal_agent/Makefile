@@ -23,5 +23,8 @@ submit:
 	dts challenges submit
 
 
-submit-robotarium:
-	dts challenges submit --challenge aido2_LF_r_pri,aido2_LF_r_pub
+# submit-robotarium:
+# 	dts challenges submit --challenge aido2_LF_r_pri,aido2_LF_r_pub
+
+submit-baseline-sim:
+	dts challenges submit --impersonate 1639 --user-label "straight" --challenge aido3-LF-sim-validation,aido3-LF-sim-testing,aido3-LFV-sim-validation,aido3-LFV-sim-testing,aido3-LFVI-sim-validation,aido3-LFVI-sim-testing

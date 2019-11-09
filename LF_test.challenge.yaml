@@ -7,8 +7,25 @@ description: |
 
 protocol: aido2_db18_agent-z2
 
+dependencies:
+  aido3-LF-sim-validation:
+    description: The submission must first pass the testing.
+    min_threshold: 2.0
+    scores:
+      good_enough:
+        description: Must have moved at least 20cm.
+        importance: 1.0
+        score_name: driven_lanedir_consec_median
+        score_min: 0.2
+        score_max: 10000.0
+    comparisons:
+      better-than-bea-straight:
+        description: Must be do better than the straight solution.
+        importance: 1.0
+        username: BeaBaselines
+        sub_label: 'straight'
 
-date-open: 2019-10-10
+date-open: 2019-10-10 00:00 Z
 date-close: 2019-12-12T13:00Z
 
 scoring: !include scoring.yaml
