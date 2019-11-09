@@ -11,6 +11,7 @@ from threading import Thread
 from typing import cast, Dict, Iterator, List
 
 import numpy as np
+
 import yaml
 
 from aido_schemas import (EpisodeStart, protocol_agent, protocol_scenario_maker, protocol_simulator, RobotObservations,

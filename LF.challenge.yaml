@@ -17,6 +17,8 @@ steps:
   step1-simulation:
     title: Simulation step
     description: ""
+    features_required:
+      compute_sims: 1 # computation machine
 
     timeout: 3600 # 1 hour
     evaluation_parameters:

@@ -5,6 +5,7 @@ import signal
 import sys
 import time
 
+
 import numpy as np
 
 from rosclient import ROSClient

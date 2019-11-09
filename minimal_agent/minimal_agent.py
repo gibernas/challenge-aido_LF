@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -10,8 +12,8 @@ from aido_schemas import EpisodeStart, protocol_agent_duckiebot1, PWMCommands, D
 
 @dataclass
 class MinimalAgentConfig:
-    pwm_left_interval: Tuple[int, int] = (0.25, 0.3)
-    pwm_right_interval: Tuple[int, int] = (-0.3, -0.25)
+    pwm_left_interval: Tuple[float, float] = (0.25, 0.3)
+    pwm_right_interval: Tuple[float, float] = (0.25, 0.3)
 
 
 class MinimalAgent:
