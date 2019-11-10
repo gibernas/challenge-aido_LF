@@ -7,6 +7,11 @@ description: |
 
 protocol: aido2_db18_agent-z2
 
+date-open: 2019-10-10 00:00 Z
+date-close: 2019-12-12T13:00Z
+
+scoring: !include scoring.yaml
+
 dependencies:
   aido3-LF-sim-validation:
     description: The submission must first pass the testing.
@@ -22,13 +27,8 @@ dependencies:
       better-than-bea-straight:
         description: Must be do better than the straight solution.
         importance: 1.0
-        username: BeaBaselines
+        username: "1639"
         sub_label: 'straight'
-
-date-open: 2019-10-10 00:00 Z
-date-close: 2019-12-12T13:00Z
-
-scoring: !include scoring.yaml
 
 steps:
   step1-simulation:

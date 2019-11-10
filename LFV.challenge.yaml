@@ -29,8 +29,9 @@ dependencies:
       better-than-bea-straight:
         description: Must be do better than the straight solution.
         importance: 1.0
-        username: BeaBaselines
+        username: "1639"
         sub_label: 'straight'
+
 
 steps:
   step1-simulation:
