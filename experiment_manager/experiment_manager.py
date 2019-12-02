@@ -404,7 +404,7 @@ def get_episodes(sm_ci: ComponentInterface, episodes_per_scenario: int, seed: in
     return episodes
 
 
-def env_as_yaml(name):
+def env_as_yaml(name: str) -> dict:
     environment = os.environ.copy()
     if not name in environment:
         msg = 'Could not find variable "%s"; I know:\n%s' % (name, json.dumps(environment, indent=4))
@@ -420,7 +420,7 @@ def env_as_yaml(name):
 import duckietown_challenges as dc
 
 
-def wrap(cie: dc.ChallengeInterfaceEvaluator):
+def wrap(cie: dc.ChallengeInterfaceEvaluator) -> None:
     d = cie.get_tmp_dir()
 
     logdir = os.path.join(d, 'episodes')
