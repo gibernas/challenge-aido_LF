@@ -16,7 +16,7 @@ from aido_schemas import (Context, DB18RobotObservations, DB18SetRobotCommands, 
                           protocol_simulator_duckiebot1, PWMCommands, RobotConfiguration, RobotInterfaceDescription,
                           RobotName, RobotPerformance, RobotState, SetMap, SimulationState, SpawnRobot, StateDump, Step,
                           wrap_direct)
-from duckietown_world.world_duckietown.pwm_dynamics import get_DB18_nominal
+from duckietown_world.world_duckietown.pwm_dynamics import get_DB18_uncalibrated
 from gym_duckietown.envs import DuckietownEnv
 from gym_duckietown.objects import DuckiebotObj
 from gym_duckietown.simulator import (NotInLane, ObjMesh, ROBOT_LENGTH, ROBOT_WIDTH, SAFETY_RAD_MULT, Simulator,
@@ -147,7 +147,7 @@ class GymDuckiebotSimulator:
         v = self.spawn_configuration.velocity
         c0 = q, v
 
-        p = get_DB18_nominal(delay=0.15)
+        p = get_DB18_uncalibrated(delay=0.15, trim=e0.trim)
         self.state = p.initialize(c0=c0, t0=0)
         cur_pos, cur_angle = e0.weird_from_cartesian(q)
         q2 = e0.cartesian_from_weird(cur_pos, cur_angle)
