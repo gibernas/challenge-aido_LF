@@ -1,7 +1,7 @@
 
 environment:
   experiment_manager_parameters: |
-    episodes_per_scenario: 5
+    episodes_per_scenario: 1
     episode_length_s: 20.0
     min_episode_length_s: 0.0
     seed: 43

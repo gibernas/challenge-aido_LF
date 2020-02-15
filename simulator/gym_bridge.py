@@ -147,7 +147,8 @@ class GymDuckiebotSimulator:
         v = self.spawn_configuration.velocity
         c0 = q, v
 
-        p = get_DB18_uncalibrated(delay=0.15, trim=e0.trim)
+        trim = e0.randomization_settings.get('trim', [0])[0]*10
+        p = get_DB18_uncalibrated(delay=0.15, trim=trim)
         self.state = p.initialize(c0=c0, t0=0)
         cur_pos, cur_angle = e0.weird_from_cartesian(q)
         q2 = e0.cartesian_from_weird(cur_pos, cur_angle)

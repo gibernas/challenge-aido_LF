@@ -1,55 +1,40 @@
-define-challenge:
-	$(MAKE) define-challenge-LF
-	$(MAKE) define-challenge-LFV
-	$(MAKE) define-challenge-LFVI
-	$(MAKE) define-challenge-LF_test
-	$(MAKE) define-challenge-LFV_test
-	$(MAKE) define-challenge-LFVI_test
+define-gb-challenges:
+	$(MAKE) define-gb-challenge-eV
+	$(MAKE) define-gb-challenge-eD
+	$(MAKE) define-gb-challenge-eI
+	$(MAKE) define-gb-challenge-eDI
 
-define-challenge-no-cache:
-	$(MAKE) define-challenge-LF-no-cache
-	$(MAKE) define-challenge-LFV-no-cache
-	$(MAKE) define-challenge-LFVI-no-cache
-	$(MAKE) define-challenge-LF_test-no-cache
-	$(MAKE) define-challenge-LFV_test-no-cache
-	$(MAKE) define-challenge-LFVI_test-no-cache
-
-define-challenge-LF:
-	dts challenges define --config LF.challenge.yaml
-
-define-challenge-LFV:
-	dts challenges define --config LFV.challenge.yaml
-
-define-challenge-LFVI:
-	dts challenges define --config LFVI.challenge.yaml
-
-define-challenge-LF_test:
-	dts challenges define --config LF_test.challenge.yaml
-
-define-challenge-LFV_test:
-	dts challenges define --config LFV_test.challenge.yaml
-
-define-challenge-LFVI_test:
-	dts challenges define --config LFVI_test.challenge.yaml
-
-define-challenge-LF-no-cache:
-	dts challenges define --config LF.challenge.yaml  --no-cache
-
-define-challenge-LFV-no-cache:
-	dts challenges define --config LFV.challenge.yaml  --no-cache
-
-define-challenge-LFVI-no-cache:
-	dts challenges define --config LFVI.challenge.yaml  --no-cache
+define-gb-challenges-no-cache:
+	$(MAKE) define-gb-challenge-eV-no-cache
+	$(MAKE) define-gb-challenge-eD-no-cache
+	$(MAKE) define-gb-challenge-eI-no-cache
+	$(MAKE) define-gb-challenge-eDI-no-cache
 
 
-define-challenge-LF_test-no-cache:
-	dts challenges define --config LF_test.challenge.yaml  --no-cache
+define-gb-challenge-eV:
+	dts challenges define --config LF_eV.challenge.yaml
 
-define-challenge-LFV_test-no-cache:
-	dts challenges define --config LFV_test.challenge.yaml  --no-cache
+define-gb-challenge-eD:
+	dts challenges define --config LF_eD.challenge.yaml
 
-define-challenge-LFVI_test-no-cache:
-	dts challenges define --config LFVI_test.challenge.yaml  --no-cache
+define-gb-challenge-eI:
+	dts challenges define --config LF_eI.challenge.yaml
+
+define-gb-challenge-eDI:
+	dts challenges define --config LF_eDI.challenge.yaml
+
+
+define-gb-challenge-eV-no-cache:
+	dts challenges define --config LF_eV.challenge.yaml --no-cache
+
+define-gb-challenge-eD-no-cache:
+	dts challenges define --config LF_eD.challenge.yaml --no-cache
+
+define-gb-challenge-eI-no-cache:
+	dts challenges define --config LF_eI.challenge.yaml --no-cache
+
+define-gb-challenge-eDI-no-cache:
+	dts challenges define --config LF_eDI.challenge.yaml --no-cache
 
 
 test-with-local-repos:

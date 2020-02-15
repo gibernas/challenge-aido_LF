@@ -1,14 +1,14 @@
-challenge: gb-01
+challenge: gb-eDI
 
-title: "gb-01  "
+title: "gb-eDI  "
 tags: [gb]
 description: |
-  Test
+  Dynamics and image randomization
 
 protocol: aido2_db18_agent-z2
 
 date-open: 2020-02-13T00:00Z
-date-close: 2020-02-14T13:00Z
+date-close: 2020-02-16T13:00Z
 
 
 
@@ -26,7 +26,7 @@ steps:
     evaluation_parameters:
       services:
         evaluator: !include comp_evaluator.yaml
-        simulator: !include comp_simulator_rand.yaml
+        simulator: !include comp_simulator_eDI.yaml
         solution: !include comp_solution.yaml
 
         scenario_maker:
@@ -36,7 +36,7 @@ steps:
             AIDONODE_CONFIG: |
               maps:
               - ETHZ_autolab_technical_track
-              scenarios_per_map: 1
+              scenarios_per_map: 10
               robots_npcs: 0
           build:
             context: ./scenario_maker
