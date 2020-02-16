@@ -22,7 +22,7 @@ steps:
     features_required:
       compute_sims: 1 # computation machine
 
-    timeout: 3600 # 1 hour
+    timeout: 7200 # 2 hours
     evaluation_parameters:
       services:
         evaluator: !include comp_evaluator.yaml
