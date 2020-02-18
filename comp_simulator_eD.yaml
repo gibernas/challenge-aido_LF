@@ -12,4 +12,5 @@ environment:
       camera_height: 480
       distortion: true
       dynamics_rand: true
+      seed: 43
 

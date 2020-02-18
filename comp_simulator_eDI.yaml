@@ -14,4 +14,5 @@ environment:
       dynamics_rand: true
       domain_rand: true
       camera_rand: true
+      seed: 43
 

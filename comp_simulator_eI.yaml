@@ -13,4 +13,5 @@ environment:
       distortion: true
       camera_rand: true
       domain_rand: true
+      seed: 43
 
