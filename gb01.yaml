@@ -39,4 +39,4 @@ steps:
               scenarios_per_map: 5
               robots_npcs: 0
           build:
-            context: ./scenario_maker
+            context: ./scenario_maker-*+/
