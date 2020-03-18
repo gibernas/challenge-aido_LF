@@ -1,0 +1,42 @@
+challenge: gb-eV-f
+
+title: "gb-eV-f  "
+tags: [gb]
+description: |
+  Vanilla environment f
+
+protocol: aido2_db18_agent-z2
+
+date-open: 2020-03-09T00:00Z
+date-close: 2020-03-12T20:00Z
+
+
+
+
+scoring: !include scoring.yaml
+
+steps:
+  step1-simulation:
+    title: Simulation step
+    description: ""
+    features_required:
+      compute_sims: 1 # computation machine
+
+    timeout: 7200 # 2 hours
+    evaluation_parameters:
+      services:
+        evaluator: !include comp_evaluator.yaml
+        simulator: !include comp_simulator.yaml
+        solution: !include comp_solution.yaml
+
+        scenario_maker:
+          environment:
+            AIDONODE_DATA_IN: /fifos/scenario_maker-in
+            AIDONODE_DATA_OUT: fifo:/fifos/scenario_maker-out
+            AIDONODE_CONFIG: |
+              maps:
+              - ETHZ_autolab_technical_track
+              scenarios_per_map: 10
+              robots_npcs: 0
+          build:
+            context: ./scenario_maker
